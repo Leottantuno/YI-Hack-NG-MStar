@@ -34,9 +34,13 @@ jobs:
             -lc '
               set -e
               export PATH="/opt/yi/arm-linux-gnueabihf-4.8.3-201404/bin:$PATH"
+              export DEBIAN_FRONTEND=noninteractive
+              # eoan is EOL — use old-releases for libtool/autoconf bits
+              sed -i "s|archive.ubuntu.com|old-releases.ubuntu.com|g; s|security.ubuntu.com|old-releases.ubuntu.com|g" /etc/apt/sources.list || true
+              apt-get update -qq
+              apt-get install -y -qq libtool autoconf automake make wget ca-certificates
               arm-linux-gnueabihf-gcc --version
               chmod +x init.rRTSPServer compile.rRTSPServer install.rRTSPServer || true
-              # Archives already present from host prefetch
               ./init.rRTSPServer
               ./compile.rRTSPServer
               ls -la _install/bin/rRTSPServer
