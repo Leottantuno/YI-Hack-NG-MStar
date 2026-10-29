@@ -19,7 +19,10 @@ stop_rtsp()
     killall wd.sh
     killall rtsp_server_yi
     killall rRTSPServer
+    killall go2rtc
     killall h264grabber
+    killall h264grabber_l
+    killall h264grabber_h
     killall h264grabber2
 }
 

@@ -1,0 +1,41 @@
+name: Build patched rRTSPServer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix-rtsp-597]
+    paths:
+      - 'src/rRTSPServer/**'
+      - '.github/workflows/build-rrtspserver.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build rRTSPServer in yi-hack toolchain image
+        run: |
+          docker run --rm --platform linux/amd64 \
+            -v "$PWD:/yi-hack-src" \
+            -w /yi-hack-src \
+            borodiliz/yi-hack:latest \
+            bash -lc '
+              set -e
+              export PATH="/opt/yi/arm-linux-gnueabihf-4.8.3-201404/bin:$PATH"
+              arm-linux-gnueabihf-gcc --version
+              cd src/rRTSPServer
+              ./init.rRTSPServer
+              ./compile.rRTSPServer
+              ./install.rRTSPServer || true
+              ls -la _install/bin/rRTSPServer
+              file _install/bin/rRTSPServer
+            '
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: rRTSPServer-armhf
+          path: src/rRTSPServer/_install/bin/rRTSPServer
+          if-no-files-found: error
