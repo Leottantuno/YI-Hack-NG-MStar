@@ -55,6 +55,10 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/lib:/home/yi-hack/lib:/tmp/sd/yi-h
 
 ulimit -s 1024
 
+# VM & Kernel Tuning for 64MB MSC313E platform
+[ -e /proc/sys/vm/min_free_kbytes ] && echo 2048 > /proc/sys/vm/min_free_kbytes
+[ -e /proc/sys/vm/vfs_cache_pressure ] && echo 150 > /proc/sys/vm/vfs_cache_pressure
+
 if [ -d /sys/class/net/eth0/ ]; then
     echo 1500 > /sys/class/net/eth0/mtu
 fi

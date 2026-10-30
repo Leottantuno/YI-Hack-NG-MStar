@@ -160,6 +160,28 @@ check_rtsp_go2rtc()
     fi
 }
 
+check_mem()
+{
+    MEM_AVAIL=$(awk '/MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null)
+    if [ -n "$MEM_AVAIL" ]; then
+        if [ "$MEM_AVAIL" -lt 4000 ]; then
+            # Drop clean pagecache when free memory is below 4MB
+            sync
+            echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+        fi
+        if [ "$MEM_AVAIL" -lt 2500 ]; then
+            # Imminent OOM danger: restart RTSP pipeline to release leaking buffers
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - Critically low memory (${MEM_AVAIL}KB), restarting RTSP..." >> "$LOG_FILE"
+            killall -q rRTSPServer rtsp_server_yi
+            killall -q h264grabber h264grabber_l h264grabber_h
+            sleep 1
+            sync
+            echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+            restart_rtsp
+        fi
+    fi
+}
+
 check_rmm()
 {
 #  echo "$(date +'%Y-%m-%d %H:%M:%S') - Checking rmm process..." >> $LOG_FILE
@@ -251,6 +273,7 @@ echo "$(date +'%Y-%m-%d %H:%M:%S') - Starting RTSP watchdog..." >> $LOG_FILE
 
 while true
 do
+    check_mem
     if [ "$RTSP_ALT" = "alternative" ]; then
         check_rtsp_alt
     elif [ "$RTSP_ALT" = "go2rtc" ]; then
