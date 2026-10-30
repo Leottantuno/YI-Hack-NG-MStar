@@ -200,7 +200,9 @@ APP.maintenance = (function($) {
                 } else {
                     setFwStatus("Installed: " + data.fw_version + " - Available: " + data.latest_fw);
                 }
-                if ((data.fw_version == data.latest_fw) && (!data.local_fw)) {
+                var cleanFw = data.fw_version ? data.fw_version.replace(/^v/, '') : '';
+                var cleanLatest = data.latest_fw ? data.latest_fw.replace(/^v/, '') : '';
+                if ((cleanFw === cleanLatest) && (!data.local_fw)) {
                     $('#button-upgrade').attr("disabled", true);
                 }
             }

@@ -67,13 +67,16 @@ elif [ "$VAL" == "upgrade" ] ; then
         LATEST_FW="x.x.x"
     else
         LATEST_FW=`wget -O -  https://api.github.com/repos/Leottantuno/YI-Hack-NG-MStar/releases/latest 2>&1 | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'`
-        if [ "$FW_VERSION" == "$LATEST_FW" ]; then
+        CLEAN_LATEST=$(echo "$LATEST_FW" | sed 's/^v//')
+        CLEAN_CURRENT=$(echo "$FW_VERSION" | sed 's/^v//')
+        if [ "$CLEAN_CURRENT" == "$CLEAN_LATEST" ]; then
             printf "Content-type: text/html\r\n\r\n"
             printf "No new firmware available."
             exit
         fi
 
-        wget https://github.com/Leottantuno/YI-Hack-NG-MStar/releases/download/$LATEST_FW/${MODEL_SUFFIX}_${LATEST_FW}.tgz
+        wget "https://github.com/Leottantuno/YI-Hack-NG-MStar/releases/download/$LATEST_FW/${MODEL_SUFFIX}_${CLEAN_LATEST}.tgz" -O "${MODEL_SUFFIX}_${LATEST_FW}.tgz" || \
+        wget "https://github.com/Leottantuno/YI-Hack-NG-MStar/releases/download/$LATEST_FW/${MODEL_SUFFIX}_${LATEST_FW}.tgz" -O "${MODEL_SUFFIX}_${LATEST_FW}.tgz"
         if [ ! -f ${MODEL_SUFFIX}_${LATEST_FW}.tgz ]; then
             printf "Content-type: text/html\r\n\r\n"
             printf "Unable to download firmware file."

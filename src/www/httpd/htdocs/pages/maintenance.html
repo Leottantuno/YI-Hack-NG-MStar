@@ -40,6 +40,17 @@
 
             <div class="six columns">
                 <div class="card">
+                    <div class="card-title">Firmware Upgrade</div>
+                    <p style="font-size:1.25rem;color:var(--text-muted);margin-bottom:12px;">
+                        Check GitHub releases or local SD storage for firmware updates.
+                    </p>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input class="u-full-width" type="text" readonly="" data-key="FW" id="FW" placeholder="Checking for updates..." style="margin-bottom:0;"/>
+                        <input class="button-primary btn-sm" type="button" id="button-upgrade" value="Upgrade Firmware" style="white-space:nowrap;"/>
+                    </div>
+                </div>
+
+                <div class="card">
                     <div class="card-title">Reboot Camera</div>
                     <p style="font-size:1.25rem;color:var(--text-muted);margin-bottom:12px;">
                         Safely sync flash storage and restart camera operating system.
