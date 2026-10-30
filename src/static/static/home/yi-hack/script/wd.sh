@@ -12,6 +12,7 @@ START_STOP_SCRIPT=$YI_HACK_PREFIX/script/service.sh
 LOG_FILE="/dev/null"
 LOGWIFI_FILE="/tmp/sd/hack_wififailsafe.log"
 
+FAILSAFE_WIFI=0
 COUNTER_H=0
 COUNTER_L=0
 COUNTER_LIMIT=10
@@ -184,25 +185,50 @@ check_mqtt()
 
 check_wifi()
 {
-    if ! wpa_cli -i wlan0 status 2>&1 | grep -q "wpa_state=COMPLETED"; then
-        if [ -e "$LOGFILE" ]; then
-            /usr/bin/tail -n 145 "$LOGFILE" > "$LOGFILE.tmp" && mv "$LOGFILE.tmp" "$LOGFILE"
+    WPA_OK=0
+    if wpa_cli -i wlan0 status 2>&1 | grep -q "wpa_state=COMPLETED"; then
+        WPA_OK=1
+    fi
+
+    GATEWAY_OK=0
+    GW=$(route -n 2>/dev/null | awk '$1 == "0.0.0.0" {print $2; exit}')
+    if [ -n "$GW" ] && [ "$GW" != "0.0.0.0" ]; then
+        if ping -c 1 -W 2 "$GW" >/dev/null 2>&1; then
+            GATEWAY_OK=1
         fi
-        echo -e "$(date): Wifi connection lost:\n$(wpa_cli -i wlan0 status 2>&1)" >> "$LOGFILE"
-        failsafecounter=$((failsafecounter + 1))
-        if [ "$failsafecounter" -ge 6 ]; then
-            echo -e "$(date): Wifi connection still could't be restored. Restarting." >> "$LOGFILE"
-            sync
-            reboot -f
-        else
-            echo -e "$(date): Attempting reconnect." >> "$LOGFILE"
-            sleep 2
-            ifconfig wlan0 down
-            sleep 1
-            ifconfig wlan0 up
-            sleep 1
-            wpa_cli -i wlan0 reconfigure
-        fi
+    fi
+
+    if [ "$WPA_OK" -eq 1 ] && [ "$GATEWAY_OK" -eq 1 ]; then
+        FAILSAFE_WIFI=0
+        return
+    fi
+
+    FAILSAFE_WIFI=$((FAILSAFE_WIFI + 1))
+    echo "$(date +'%Y-%m-%d %H:%M:%S') - WiFi issue (wpa_ok=$WPA_OK, gw_ok=$GATEWAY_OK, fail_count=$FAILSAFE_WIFI)" >> "$LOGWIFI_FILE"
+
+    if [ "$FAILSAFE_WIFI" -lt 3 ]; then
+        # Stage 1: Soft wpa reassociate/reconfigure (non-disruptive)
+        wpa_cli -i wlan0 reassociate >/dev/null 2>&1 || wpa_cli -i wlan0 reconfigure >/dev/null 2>&1
+    elif [ "$FAILSAFE_WIFI" -lt 6 ]; then
+        # Stage 2: Cycle interface and refresh DHCP lease
+        ifconfig wlan0 down
+        sleep 1
+        ifconfig wlan0 up
+        sleep 1
+        wpa_cli -i wlan0 reassociate >/dev/null 2>&1
+        $YI_HACK_PREFIX/script/wifidhcp.sh >/dev/null 2>&1 &
+    elif [ "$FAILSAFE_WIFI" -lt 10 ]; then
+        # Stage 3: Full wpa_supplicant restart
+        killall -q wpa_supplicant
+        sleep 1
+        /home/base/tools/wpa_supplicant -c/tmp/wpa_supplicant.conf -g/var/run/wpa_supplicant-global -Dnl80211 -iwlan0 -B
+        sleep 2
+        $YI_HACK_PREFIX/script/wifidhcp.sh >/dev/null 2>&1 &
+    else
+        # Stage 4: Persistent failure after ~100s without network, reboot system safely
+        echo "$(date +'%Y-%m-%d %H:%M:%S') - WiFi recovery failed after $FAILSAFE_WIFI attempts. Rebooting..." >> "$LOGWIFI_FILE"
+        sync
+        reboot -f
     fi
 }
 

@@ -27,7 +27,7 @@ if [ "$VAL" == "info" ] ; then
 
     MODEL_SUFFIX=`cat $YI_HACK_PREFIX/model_suffix`
     FW_VERSION=`cat $YI_HACK_PREFIX/version`
-    LATEST_FW=`wget -O -  https://api.github.com/repos/roleoroleo/yi-hack-MStar/releases/latest 2>&1 | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'`
+    LATEST_FW=`wget -O -  https://api.github.com/repos/Leottantuno/yi-hack-MStar-NG/releases/latest 2>&1 | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'`
     if [ -f /tmp/sd/${MODEL_SUFFIX}_x.x.x.tgz ]; then
         LOCAL_FW="true"
     else
@@ -66,7 +66,7 @@ elif [ "$VAL" == "upgrade" ] ; then
         mv /tmp/sd/${MODEL_SUFFIX}_x.x.x.tgz /tmp/sd/.fw_upgrade/${MODEL_SUFFIX}_x.x.x.tgz
         LATEST_FW="x.x.x"
     else
-        LATEST_FW=`wget -O -  https://api.github.com/repos/roleoroleo/yi-hack-MStar/releases/latest 2>&1 | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'`
+        LATEST_FW=`wget -O -  https://api.github.com/repos/Leottantuno/yi-hack-MStar-NG/releases/latest 2>&1 | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'`
         if [ "$FW_VERSION" == "$LATEST_FW" ]; then
             printf "Content-type: text/html\r\n\r\n"
             printf "No new firmware available."
