@@ -415,3 +415,34 @@ table.ptz-table input[type="image"]:hover {
 #img-al, #img-ul { rotate: -90deg; }
 #img-ar, #img-dr { rotate: 90deg; }
 #img-ad, #img-dl { rotate: 180deg; }
+
+/* Live View Enhancements */
+@keyframes liveDotPulse {
+	0% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.4; transform: scale(0.85); }
+	100% { opacity: 1; transform: scale(1); }
+}
+
+.live-pulse {
+	animation: liveDotPulse 1.5s infinite ease-in-out;
+}
+
+#liveViewContainer:fullscreen {
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	width: 100vw !important;
+	height: 100vh !important;
+	max-height: 100vh !important;
+	background: #000000 !important;
+	border-radius: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+#liveViewContainer:fullscreen #imgSnap {
+	max-height: 100vh !important;
+	max-width: 100vw !important;
+	object-fit: contain !important;
+	border-radius: 0 !important;
+}

@@ -18,7 +18,7 @@ WATERMARK="no"
 OUTPUT_FILE="none"
 MODEL=$(cat /home/yi-hack/model_suffix)
 
-for I in 1 2 3 4
+for I in 1 2 3 4 5 6
 do
     CONF="$(echo $QUERY_STRING | cut -d'&' -f$I | cut -d'=' -f1)"
     VAL="$(echo $QUERY_STRING | cut -d'&' -f$I | cut -d'=' -f2)"

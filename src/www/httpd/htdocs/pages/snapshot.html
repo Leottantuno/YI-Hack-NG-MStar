@@ -1,14 +1,66 @@
 <div class="row">
     <div class="twelve columns">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <h4 class="no-margin">Live Snapshot</h4>
-            <div>
-                <a href="javascript:location.reload()" class="button btn-sm btn-primary">Refresh Image</a>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <h4 class="no-margin">Live View &amp; Snapshot</h4>
+                <span id="liveBadge" style="background:#10b981;color:#fff;padding:3px 10px;border-radius:12px;font-size:1.1rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+                    <span id="liveDot" class="live-pulse" style="display:inline-block;width:8px;height:8px;background:#fff;border-radius:50%;"></span>
+                    <span id="liveBadgeText">LIVE</span>
+                </span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <button id="btnToggleLive" class="button btn-sm button-primary" style="margin-bottom:0;">Pause</button>
+                <button id="btnRefresh" class="button btn-sm" style="margin-bottom:0;">Refresh</button>
+                <button id="btnDownload" class="button btn-sm" style="margin-bottom:0;">Save Image</button>
+                <button id="btnFullscreen" class="button btn-sm" style="margin-bottom:0;">⛶ Fullscreen</button>
             </div>
         </div>
 
-        <div class="card" style="text-align:center;padding:12px;">
-            <img id="imgSnap" src="img/loading.gif" style="max-width:100%;height:auto;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.15);" />
+        <div class="card" style="padding:10px 14px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="margin-bottom:0;font-size:1.2rem;font-weight:600;color:var(--text-muted);">Resolution:</label>
+                    <select id="selectRes" style="margin-bottom:0;height:32px;padding:2px 8px;font-size:1.2rem;">
+                        <option value="high" selected>High (1080p)</option>
+                        <option value="low">Low (360p)</option>
+                    </select>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="margin-bottom:0;font-size:1.2rem;font-weight:600;color:var(--text-muted);">Refresh Rate:</label>
+                    <select id="selectRate" style="margin-bottom:0;height:32px;padding:2px 8px;font-size:1.2rem;">
+                        <option value="1000">1 second (Fast)</option>
+                        <option value="2000" selected>2 seconds (Normal)</option>
+                        <option value="5000">5 seconds (Slow)</option>
+                        <option value="manual">Manual only</option>
+                    </select>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="margin-bottom:0;font-size:1.2rem;font-weight:600;color:var(--text-muted);">Watermark:</label>
+                    <select id="selectWatermark" style="margin-bottom:0;height:32px;padding:2px 8px;font-size:1.2rem;">
+                        <option value="yes" selected>Show</option>
+                        <option value="no">Hide</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="liveViewContainer" class="card" style="position:relative;background:#090d16;text-align:center;padding:0;overflow:hidden;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+            <div style="position:absolute;top:10px;left:12px;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);color:#fff;padding:3px 10px;border-radius:4px;font-size:1.15rem;font-family:monospace;pointer-events:none;z-index:2;display:flex;align-items:center;gap:8px;">
+                <span id="hudHostname">YI-CAM</span>
+                <span style="opacity:0.5;">|</span>
+                <span id="hudRes">1080p</span>
+            </div>
+            <div style="position:absolute;bottom:10px;left:12px;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);color:#e2e8f0;padding:3px 10px;border-radius:4px;font-size:1.1rem;font-family:monospace;pointer-events:none;z-index:2;">
+                <span id="hudStatus">Loading frame...</span>
+            </div>
+
+            <div id="snapSpinner" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;display:none;">
+                <img src="img/loading.gif" style="width:36px;height:36px;" />
+            </div>
+
+            <img id="imgSnap" src="img/loading.gif" style="width:100%;height:auto;max-height:80vh;object-fit:contain;display:block;margin:0 auto;" />
         </div>
     </div>
 </div>
