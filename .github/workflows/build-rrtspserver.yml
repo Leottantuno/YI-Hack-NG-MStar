@@ -16,19 +16,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prefetch build archives on host (container DNS is broken)
-        working-directory: src/rRTSPServer
+      - name: Prefetch build dependencies on host (avoids EOL container networking/DNS issues)
         run: |
           set -e
+          cd src/rRTSPServer
           curl -fsSL -o v2.0.1.tar.gz https://github.com/mstorsjo/fdk-aac/archive/v2.0.1.tar.gz
           curl -fsSL -o live.2023.01.19.tar.gz https://download.videolan.org/pub/contrib/live555/live.2023.01.19.tar.gz
           ls -lh v2.0.1.tar.gz live.2023.01.19.tar.gz
+          cd ../..
+
+          mkdir -p .debs
+          curl -fsSL -o .debs/libltdl7.deb http://old-releases.ubuntu.com/ubuntu/pool/main/libt/libtool/libltdl7_2.4.6-11_i386.deb
+          curl -fsSL -o .debs/libltdl-dev.deb http://old-releases.ubuntu.com/ubuntu/pool/main/libt/libtool/libltdl-dev_2.4.6-11_i386.deb
+          curl -fsSL -o .debs/libtool.deb http://old-releases.ubuntu.com/ubuntu/pool/main/libt/libtool/libtool_2.4.6-11_all.deb
 
       - name: Build binaries in yi-hack toolchain image
         run: |
           docker run --rm --platform linux/amd64 \
             --entrypoint bash \
-            --dns 1.1.1.1 --dns 8.8.8.8 \
             -v "$PWD:/yi-hack-src" \
             -w /yi-hack-src \
             borodiliz/yi-hack:latest \
@@ -36,10 +41,7 @@ jobs:
               set -e
               export PATH="/opt/yi/arm-linux-gnueabihf-4.8.3-201404/bin:$PATH"
               export DEBIAN_FRONTEND=noninteractive
-              # eoan is EOL — use old-releases for libtool/autoconf bits
-              sed -i "s|archive.ubuntu.com|old-releases.ubuntu.com|g; s|security.ubuntu.com|old-releases.ubuntu.com|g" /etc/apt/sources.list || true
-              apt-get update -qq
-              apt-get install -y -qq libtool autoconf automake make wget ca-certificates
+              dpkg -i .debs/*.deb
               arm-linux-gnueabihf-gcc --version
 
               echo "=== Building h264grabber ==="
