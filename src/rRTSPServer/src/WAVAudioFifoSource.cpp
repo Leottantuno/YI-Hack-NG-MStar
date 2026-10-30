@@ -24,6 +24,8 @@
 #include "rRTSPServer.h"
 
 #include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 ////////// WAVAudioFifoSource //////////
 
@@ -146,9 +148,13 @@ WAVAudioFifoSource::~WAVAudioFifoSource() {
 }
 
 void WAVAudioFifoSource::doGetNextFrame() {
-    if (feof(fFid) || (fLimitNumBytesToStream && fNumBytesToStream == 0)) {
+    if (fLimitNumBytesToStream && fNumBytesToStream == 0) {
         handleClosure();
         return;
+    }
+    // Live FIFO: clear sticky EOF instead of tearing down the RTSP session.
+    if (feof(fFid)) {
+        clearerr(fFid);
     }
 
     fFrameSize = 0; // until it's set later
@@ -201,22 +207,23 @@ void WAVAudioFifoSource::doReadFromFile() {
 
     unsigned bytesToRead = fMaxSize - fMaxSize%bytesPerSample;
 
-    ssize_t numBytesRead = read(fileno(fFid), fTo, bytesToRead);
-    if (numBytesRead == 0) {
-        // Writer closed the fifo (EOF): end the stream instead of looping.
-        handleClosure();
-        return;
+    // Live FIFO: never treat EOF/EAGAIN as end-of-stream. Closing the source
+    // (handleClosure) kills RTSP clients when the audio writer briefly disconnects
+    // — regression vs 0.5.5 (see GitHub issue #597).
+    while (1) {
+        ssize_t numBytesRead = read(fileno(fFid), fTo, bytesToRead);
+        if (numBytesRead > 0) {
+            fFrameSize += (unsigned) numBytesRead;
+            fTo += numBytesRead;
+            fMaxSize -= (unsigned) numBytesRead;
+            fNumBytesToStream -= (unsigned) numBytesRead;
+            break;
+        }
+        if (numBytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
+            if (debug & 2) fprintf(stderr, "%lld: WAVAudioFifoSource - read error %d, retrying\n", current_timestamp(), errno);
+        }
+        usleep(1000);
     }
-    if (numBytesRead < 0) {
-        // No data available right now (EAGAIN) or a transient error: wait for
-        // the next readable notification rather than spinning on usleep().
-        return;
-    }
-
-    fFrameSize += (unsigned) numBytesRead;
-    fTo += numBytesRead;
-    fMaxSize -= (unsigned) numBytesRead;
-    fNumBytesToStream -= (unsigned) numBytesRead;
 
     // If we didn't read an integral number of samples, wait for another read:
     if (fFrameSize%bytesPerSample > 0) return;

@@ -20,6 +20,9 @@
 
 #include "liveMedia.hh"
 #include "BasicUsageEnvironment.hh"
+#include "H264VideoFifoServerMediaSubsession.hh"
+#include "H265VideoFifoServerMediaSubsession.hh"
+#include "ByteStreamFifoSource.hh"
 #include "ADTSAudioFileServerMediaSubsession_BC.hh"
 #include "PCMAudioFileServerMediaSubsession_BC.hh"
 #include "WAVAudioFifoServerMediaSubsession.hh"
@@ -497,10 +500,10 @@ int main(int argc, char** argv)
             = ServerMediaSession::createNew(*env, streamName, streamName,
                                         descriptionString);
         if (codec_high == CODEC_H265) {
-            sms_high->addSubsession(H265VideoFileServerMediaSubsession
+            sms_high->addSubsession(H265VideoFifoServerMediaSubsession
                                             ::createNew(*env, inputFileName, reuseFirstSource));
         } else {
-            sms_high->addSubsession(H264VideoFileServerMediaSubsession
+            sms_high->addSubsession(H264VideoFifoServerMediaSubsession
                                             ::createNew(*env, inputFileName, reuseFirstSource));
         }
         if (audio == 1) {
@@ -538,10 +541,10 @@ int main(int argc, char** argv)
         = ServerMediaSession::createNew(*env, streamName, streamName,
                                         descriptionString);
         if (codec_low == CODEC_H265) {
-            sms_low->addSubsession(H265VideoFileServerMediaSubsession
+            sms_low->addSubsession(H265VideoFifoServerMediaSubsession
                                             ::createNew(*env, inputFileName, reuseFirstSource));
         } else {
-            sms_low->addSubsession(H264VideoFileServerMediaSubsession
+            sms_low->addSubsession(H264VideoFifoServerMediaSubsession
                                             ::createNew(*env, inputFileName, reuseFirstSource));
         }
         if (audio == 1) {

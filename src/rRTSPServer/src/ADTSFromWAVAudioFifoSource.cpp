@@ -26,6 +26,8 @@
 #include "rRTSPServer.h"
 
 #include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 extern int debug;
 
@@ -204,9 +206,10 @@ ADTSFromWAVAudioFifoSource::~ADTSFromWAVAudioFifoSource() {
 }
 
 void ADTSFromWAVAudioFifoSource::doGetNextFrame() {
+    // Live FIFO: a transient EOF must not tear down the RTSP audio track
+    // (same class of failure as issue #597 on WAVAudioFifoSource).
     if (feof(fFid)) {
-        handleClosure();
-        return;
+        clearerr(fFid);
     }
 
     fFrameSize = 0; // until it's set later
@@ -248,20 +251,20 @@ void ADTSFromWAVAudioFifoSource::doReadFromFile() {
                  ((UCHAR *) fInputBuffer) + sizeof(INT_PCM) * fInputBufferSize,
                  numToRead);
     if (debug & 2) fprintf(stderr, "%lld: ADTSFromWAVAudioFifoSource - read completed %d/%d bytes\n", current_timestamp(), numInBytes, sizeof(fInputBuffer));
-    if (numInBytes <= -1) {
-        // TODO
-        fprintf(stderr, "%lld: ADTSFromWAVAudioFifoSource - error reading file, try again later\n", current_timestamp());
+    if (numInBytes <= 0) {
+        // 0 = FIFO EOF (writer closed); -1 = EAGAIN/error. Keep the session alive.
+        if (numInBytes == 0) clearerr(fFid);
+        if (debug & 2) fprintf(stderr, "%lld: ADTSFromWAVAudioFifoSource - short/empty read (%d), retry later\n", current_timestamp(), numInBytes);
+        usleep(1000);
         fFrameSize = 0;
         fNumTruncatedBytes = 0;
-//        FramedSource::afterGetting(this);
         return;
     }
     fInputBufferSize += (numInBytes / sizeof(INT_PCM));
     if (fInputBufferSize != sizeof(fInputBuffer) / sizeof(INT_PCM)) {
-        fprintf(stderr, "%lld: ADTSFromWAVAudioFifoSource - buffer not full, read again later\n", current_timestamp());
+        if (debug & 2) fprintf(stderr, "%lld: ADTSFromWAVAudioFifoSource - buffer not full, read again later\n", current_timestamp());
         fFrameSize = 0;
         fNumTruncatedBytes = 0;
-//        FramedSource::afterGetting(this);
         return;
     }
 
