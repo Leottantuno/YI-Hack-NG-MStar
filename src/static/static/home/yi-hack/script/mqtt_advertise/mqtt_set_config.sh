@@ -35,13 +35,46 @@ fi
 
 MQTT_PREFIX=$(get_config MQTT_PREFIX)
 MQTT_ADV_CAMERA_SETTING_TOPIC=$(get_mqtt_advertise_config MQTT_ADV_CAMERA_SETTING_TOPIC)
-TOPIC=$MQTT_PREFIX'/'$MQTT_ADV_CAMERA_SETTING_TOPIC'/+/set'
+[ -z "$MQTT_ADV_CAMERA_SETTING_TOPIC" ] && MQTT_ADV_CAMERA_SETTING_TOPIC="camera_setting"
+
+TOPIC_SET=$MQTT_PREFIX'/'$MQTT_ADV_CAMERA_SETTING_TOPIC'/+/set'
+TOPIC_CMD=$MQTT_PREFIX'/command/+'
 
 while :; do
-$YI_HACK_PREFIX/bin/mosquitto_sub -v -h $HOST -t $TOPIC | while read -r SUBSCRIBED; do
-    CONF_UPPER=$(echo $SUBSCRIBED | awk '{print $1}' | awk -F / '{ print $(NF-1)}')
-    CONF=$(echo $CONF_UPPER | awk '{ print tolower($0) }')
-    VAL=$(echo $SUBSCRIBED | awk '{print $2}')
+$YI_HACK_PREFIX/bin/mosquitto_sub -v -h $HOST -t $TOPIC_SET -t $TOPIC_CMD | while read -r SUBSCRIBED; do
+    FULL_TOPIC=$(echo "$SUBSCRIBED" | awk '{print $1}')
+    VAL=$(echo "$SUBSCRIBED" | cut -d' ' -f2-)
+    [ -z "$FULL_TOPIC" ] && continue
+
+    # Check for Action Commands
+    case "$FULL_TOPIC" in
+        */command/reboot)
+            sync
+            sync
+            sync
+            (sleep 1 && reboot -f) &
+            continue
+        ;;
+        */command/restart_rtsp)
+            $YI_HACK_PREFIX/script/service.sh rtsp restart &
+            continue
+        ;;
+        */command/snapshot)
+            MODEL_SUF=$(cat $YI_HACK_PREFIX/model_suffix 2>/dev/null)
+            SNAP_TOPIC=$(get_config TOPIC_MOTION_IMAGE)
+            [ -z "$SNAP_TOPIC" ] && SNAP_TOPIC="motion_detection_image"
+            imggrabber -m "$MODEL_SUF" -r high > /tmp/ha_snap.jpg 2>/dev/null
+            if [ -f /tmp/ha_snap.jpg ]; then
+                $YI_HACK_PREFIX/bin/mosquitto_pub -h $HOST -t "$MQTT_PREFIX/$SNAP_TOPIC" -f /tmp/ha_snap.jpg
+                rm -f /tmp/ha_snap.jpg
+            fi &
+            continue
+        ;;
+    esac
+
+    # Camera Settings Configuration
+    CONF_UPPER=$(echo "$FULL_TOPIC" | awk -F / '{ print $(NF-1)}')
+    CONF=$(echo "$CONF_UPPER" | awk '{ print tolower($0) }')
 
     sed -i "s/^\(${CONF_UPPER}\s*=\s*\).*$/\1${VAL}/" $YI_HACK_PREFIX/$CONF_FILE
     IPC_OPT=""

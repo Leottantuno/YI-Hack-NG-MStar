@@ -79,13 +79,18 @@ MQTT_ADV_CAMERA_SETTING_QOS=$(get_mqtt_advertise_config MQTT_ADV_CAMERA_SETTING_
 MQTT_ADV_TELEMETRY_ENABLE=$(get_mqtt_advertise_config MQTT_ADV_TELEMETRY_ENABLE)
 MQTT_ADV_TELEMETRY_TOPIC=$(get_mqtt_advertise_config MQTT_ADV_TELEMETRY_TOPIC)
 MQTT_ADV_TELEMETRY_RETAIN=$(get_mqtt_advertise_config MQTT_ADV_TELEMETRY_RETAIN)
-MQTT_ADV_TELEMETRY_QOS=$(get_mqtt_advertise_config MQTT_ADV_TELEMETRY_RETAIN)
+MQTT_ADV_TELEMETRY_QOS=$(get_mqtt_advertise_config MQTT_ADV_TELEMETRY_QOS)
 NAME=$(get_mqtt_advertise_config HOMEASSISTANT_NAME)
 IDENTIFIERS=$(get_mqtt_advertise_config HOMEASSISTANT_IDENTIFIERS)
 MANUFACTURER=$(get_mqtt_advertise_config HOMEASSISTANT_MANUFACTURER)
 MODEL=$(get_mqtt_advertise_config HOMEASSISTANT_MODEL)
 SW_VERSION=$(cat $YI_HACK_PREFIX/version)
-DEVICE_DETAILS="{\"identifiers\":[\"$IDENTIFIERS\"],\"connections\":[[\"mac\",\"${LOCAL_MAC}\"]],\"manufacturer\":\"$MANUFACTURER\",\"model\":\"$MODEL\",\"name\":\"$NAME\",\"sw_version\":\"$SW_VERSION\",\"configuration_url\":\"http://$LOCAL_IP:$HTTPD_PORT\"}"
+if [ -z "$HTTPD_PORT" ] || [ "$HTTPD_PORT" = "80" ]; then
+    CONFIG_URL="http://$LOCAL_IP"
+else
+    CONFIG_URL="http://$LOCAL_IP:$HTTPD_PORT"
+fi
+DEVICE_DETAILS="{\"identifiers\":[\"$IDENTIFIERS\"],\"connections\":[[\"mac\",\"${LOCAL_MAC}\"]],\"manufacturer\":\"$MANUFACTURER\",\"model\":\"$MODEL\",\"name\":\"$NAME\",\"sw_version\":\"$SW_VERSION\",\"configuration_url\":\"$CONFIG_URL\"}"
 if [ "$HOMEASSISTANT_RETAIN" = "1" ]; then
     HA_RETAIN="-r"
 else
@@ -146,6 +151,18 @@ hass_setup_switch(){
   CONTENT=$CONTENT', "command_topic":"'$MQTT_PREFIX'/'$4'/'$1'/set", "payload_on":"yes", "payload_off":"no"'
   if [ -n "$5" ]; then
     CONTENT=$CONTENT', "entity_category":"'$5'"'
+  fi
+  CONTENT="$CONTENT}"
+}
+hass_setup_button(){
+  # topic, Full name, icon, command_topic, device_class (optional), entity category (optional)
+  hass_topic "button" "$1" "$2"
+  CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS','$QOS' '$RETAIN' "icon":"mdi:'$3'","command_topic":"'$MQTT_PREFIX'/'$4'","payload_press":"PRESS","name":"'$UNIQUE_NAME'","unique_id":"'$UNIQUE_ID'","platform":"mqtt"'
+  if [ -n "$5" ]; then
+    CONTENT=$CONTENT', "device_class":"'$5'"'
+  fi
+  if [ -n "$6" ]; then
+    CONTENT=$CONTENT', "entity_category":"'$6'"'
   fi
   CONTENT="$CONTENT}"
 }
@@ -218,21 +235,25 @@ if [ "$MQTT_ADV_TELEMETRY_ENABLE" = "yes" ]; then
     mqtt_publish
     #FreeSD
     hass_topic "sensor" "free_sd" "Free SD"
-    CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS','$QOS' '$RETAIN' "icon":"mdi:micro-sd","state_topic":"'$MQTT_PREFIX'/'$MQTT_ADV_TELEMETRY_TOPIC'","name":"'$UNIQUE_NAME'","unique_id":"'$UNIQUE_ID'","value_template":"{{ value_json.free_sd|regex_replace(find=\"%\", replace=\"\", ignorecase=False) }}","platform": "mqtt","unit_of_measurement":"%","entity_category": "diagnostic"}'
+    CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS','$QOS' '$RETAIN' "icon":"mdi:micro-sd","state_topic":"'$MQTT_PREFIX'/'$MQTT_ADV_TELEMETRY_TOPIC'","name":"'$UNIQUE_NAME'","unique_id":"'$UNIQUE_ID'","value_template":"{{ (value_json.free_sd | default(\"0%\")) | regex_replace(find=\"%\", replace=\"\", ignorecase=False) }}","platform": "mqtt","unit_of_measurement":"%","state_class":"measurement","entity_category": "diagnostic"}'
     mqtt_publish
     #Load AVG
     hass_setup_sensor "load_avg" "Load AVG" "network" $MQTT_ADV_TELEMETRY_TOPIC "" "diagnostic"
     mqtt_publish
+    #Load 1m
+    hass_topic "sensor" "load_1m" "CPU Load"
+    CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS','$QOS' '$RETAIN' "icon":"mdi:cpu-64-bit","state_topic":"'$MQTT_PREFIX'/'$MQTT_ADV_TELEMETRY_TOPIC'","name":"'$UNIQUE_NAME'","unique_id":"'$UNIQUE_ID'","value_template":"{{ value_json.load_1m | default(value_json.load_avg.split(\" \")[0]) | float }}","platform": "mqtt","state_class":"measurement","entity_category": "diagnostic"}'
+    mqtt_publish
     #Uptime
     hass_topic "sensor" "uptime" "Uptime"
-    CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS','$QOS' '$RETAIN' "device_class":"timestamp","icon":"mdi:timer-outline","state_topic":"'$MQTT_PREFIX'/'$MQTT_ADV_TELEMETRY_TOPIC'","name":"'$UNIQUE_NAME'","'unique_id'":"'$UNIQUE_ID'","value_template":"{{ (as_timestamp(now())-(value_json.uptime|int))|timestamp_local }}", "platform": "mqtt","entity_category": "diagnostic"}'
+    CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS','$QOS' '$RETAIN' "device_class":"timestamp","icon":"mdi:timer-outline","state_topic":"'$MQTT_PREFIX'/'$MQTT_ADV_TELEMETRY_TOPIC'","name":"'$UNIQUE_NAME'","unique_id":"'$UNIQUE_ID'","value_template":"{{ (as_timestamp(now())-(value_json.uptime|int))|timestamp_local }}", "platform": "mqtt","entity_category": "diagnostic"}'
     mqtt_publish
-    #WLanStrenght
-    hass_topic "sensor" "wlan_strength" "Wlan Strengh"
-    CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS','$QOS' '$RETAIN' "icon":"mdi:wifi","state_topic":"'$MQTT_PREFIX'/'$MQTT_ADV_TELEMETRY_TOPIC'","name":"'$UNIQUE_NAME'","unique_id":"'$UNIQUE_ID'","value_template":"{{ ((value_json.wlan_strength|int) * 100 / 70 )|int }}","platform": "mqtt","unit_of_measurement":"%","entity_category": "diagnostic"}'
+    #WiFi Signal
+    hass_topic "sensor" "wlan_strength" "WiFi Signal"
+    CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS','$QOS' '$RETAIN' "icon":"mdi:wifi","state_topic":"'$MQTT_PREFIX'/'$MQTT_ADV_TELEMETRY_TOPIC'","name":"'$UNIQUE_NAME'","unique_id":"'$UNIQUE_ID'","value_template":"{{ value_json.wlan_pct | default(((value_json.wlan_strength|int) * 100 / 70 )|int) }}","platform": "mqtt","unit_of_measurement":"%","state_class":"measurement","entity_category": "diagnostic"}'
     mqtt_publish
 else
-    for ITEM in total_memory free_memory free_sd load_avg uptime wlan_strength; do
+    for ITEM in total_memory free_memory free_sd load_avg load_1m uptime wlan_strength; do
         hass_topic "sensor" "$ITEM"
         $YI_HACK_PREFIX/bin/mosquitto_pub $HA_QOS $HA_RETAIN -h $HOST -t $TOPIC -n
     done
@@ -326,3 +347,15 @@ else
         $YI_HACK_PREFIX/bin/mosquitto_pub $HA_QOS $HA_RETAIN -h $HOST -t $TOPIC -n
     done
 fi
+
+# Reboot Camera Button
+hass_setup_button "reboot" "Reboot Camera" "restart" "command/reboot" "restart" "config"
+mqtt_publish
+
+# Restart RTSP Button
+hass_setup_button "restart_rtsp" "Restart RTSP" "video-switch" "command/restart_rtsp" "" "config"
+mqtt_publish
+
+# Snapshot Button
+hass_setup_button "snapshot" "Take Snapshot" "camera" "command/snapshot" "" "config"
+mqtt_publish

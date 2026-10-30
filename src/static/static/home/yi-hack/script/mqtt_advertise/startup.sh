@@ -48,14 +48,13 @@ if [ "$MQTT_ADV_INFO_GLOBAL_ENABLE" = "yes" ]; then
         echo "$MQTT_ADV_INFO_GLOBAL_CRONTAB  $YI_HACK_PREFIX/script/mqtt_advertise/mqtt_adv_info_global.sh" >>/var/spool/cron/crontabs/root
     fi
 fi
-if [ "$MQTT_ADV_CAMERA_SETTING_ENABLE" = "yes" ]; then
+if [ "$MQTT_ADV_CAMERA_SETTING_ENABLE" = "yes" ] || [ "$HOMEASSISTANT_ENABLE" = "yes" ]; then
     if [ "$MQTT_ADV_CAMERA_SETTING_BOOT" = "yes" ]; then
         $YI_HACK_PREFIX/script/mqtt_advertise/mqtt_adv_config.sh &
     fi
     if [ "$MQTT_ADV_CAMERA_SETTING_CRON" = "yes" ]; then
         echo "$MQTT_ADV_CAMERA_SETTING_CRONTAB  $YI_HACK_PREFIX/script/mqtt_advertise/mqtt_adv_config.sh" >>/var/spool/cron/crontabs/root
     fi
-    FW_VERSION=$(cat $YI_HACK_PREFIX/version)
 
     $YI_HACK_PREFIX/script/mqtt_advertise/mqtt_set_config.sh &
 fi
