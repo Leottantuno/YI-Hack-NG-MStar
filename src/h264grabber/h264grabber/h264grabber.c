@@ -18,6 +18,7 @@
  * Scans the buffer and sends h264 frames to stdout.
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -25,12 +26,20 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifndef F_SETPIPE_SZ
+#define F_SETPIPE_SZ 1031
+#endif
+#ifndef F_GETPIPE_SZ
+#define F_GETPIPE_SZ 1032
+#endif
 #include <sys/mman.h>
 #include <dirent.h>
 #include <getopt.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <signal.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define GENERIC 0
 #define H305R 1
@@ -108,35 +117,66 @@ int pidof(const char *pname)
 
 // Converts virtual address to physical address
 unsigned int rmm_virt2phys(unsigned int inAddr) {
-    int pid;
-    unsigned int outAddr;
+    int pid = 0;
+    unsigned int outAddr = 0;
     char sInAddr[16];
     char sMaps[1024];
-    FILE *fMaps;
-    char *p;
-    char *line;
-    size_t lineSize;
+    FILE *fMaps = NULL;
+    char *p = NULL;
+    char *line = NULL;
+    size_t lineSize = 1024;
+    int retries = 5;
 
-    line = (char  *) malloc(1024);
+    line = (char *) malloc(lineSize);
+    if (!line) return 0;
 
-    pid = pidof("rmm");
-    sprintf(sMaps, "/proc/%d/maps", pid);
-    fMaps = fopen(sMaps, "r");
-    sprintf(sInAddr, "%08x", inAddr);
-    while (getline(&line, &lineSize, fMaps) != -1) {
-        if (strncmp(line, sInAddr, 8) == 0)
-            break;
+    while (retries-- > 0) {
+        pid = pidof("rmm");
+        if (pid > 0) break;
+        usleep(200000);
+    }
+    if (pid <= 0) {
+        fprintf(stderr, "error: rmm process not found\n");
+        free(line);
+        return 0;
     }
 
-    p = line;
-    p = strchr(p, ' ');
-    p++;
-    p = strchr(p, ' ');
-    p++;
-    p[8] = '\0';
-    sscanf(p, "%x", &outAddr);
-    free(line);
+    sprintf(sMaps, "/proc/%d/maps", pid);
+    fMaps = fopen(sMaps, "r");
+    if (fMaps == NULL) {
+        fprintf(stderr, "error: cannot open %s\n", sMaps);
+        free(line);
+        return 0;
+    }
+
+    sprintf(sInAddr, "%08x", inAddr);
+    int found = 0;
+    while (getline(&line, &lineSize, fMaps) != -1) {
+        if (strncmp(line, sInAddr, 8) == 0) {
+            found = 1;
+            break;
+        }
+    }
     fclose(fMaps);
+
+    if (found) {
+        p = line;
+        p = strchr(p, ' ');
+        if (p != NULL) {
+            p++;
+            p = strchr(p, ' ');
+            if (p != NULL) {
+                p++;
+                if (strlen(p) >= 8) {
+                    p[8] = '\0';
+                    sscanf(p, "%x", &outAddr);
+                }
+            }
+        }
+    } else {
+        fprintf(stderr, "error: address %08x not found in maps\n", inAddr);
+    }
+    free(line);
 
     return outAddr;
 }
@@ -158,9 +198,83 @@ void fillCheck(unsigned char *check, int checkSize, unsigned char *buf, int bufS
     }
 }
 
-void sigpipe_handler(int unused)
+static int out_fd = -1;
+static const char *current_fifo_name = NULL;
+static int is_fifo_mode = 0;
+static int g_debug = 0;
+static volatile sig_atomic_t g_running = 1;
+static unsigned char cached_sps_pps[256];
+static size_t cached_sps_pps_len = 0;
+
+static void sigterm_handler(int sig)
 {
-    // Do nothing
+    (void)sig;
+    g_running = 0;
+}
+
+static void try_reopen_fifo()
+{
+    if (!is_fifo_mode || current_fifo_name == NULL) return;
+    if (out_fd >= 0) {
+        close(out_fd);
+        out_fd = -1;
+    }
+    out_fd = open(current_fifo_name, O_RDWR | O_NONBLOCK);
+    if (out_fd >= 0) {
+        fcntl(out_fd, F_SETPIPE_SZ, 256 * 1024);
+        if (g_debug) fprintf(stderr, "FIFO %s reopened successfully\n", current_fifo_name);
+        if (cached_sps_pps_len > 0) {
+            write(out_fd, cached_sps_pps, cached_sps_pps_len);
+        }
+    }
+}
+
+static size_t safe_write(const void *ptr, size_t size, size_t nmemb)
+{
+    size_t total = size * nmemb;
+    if (total == 0) return 0;
+
+    if (out_fd < 0) {
+        try_reopen_fifo();
+        if (out_fd < 0) return 0;
+    }
+
+    ssize_t written = write(out_fd, ptr, total);
+    if (written < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // FIFO buffer is full; drop frame to preserve hardware sync without blocking
+            return 0;
+        }
+        if (errno == EPIPE || errno == EBADF) {
+            if (g_debug) fprintf(stderr, "Pipe error on output (%d)\n", errno);
+            try_reopen_fifo();
+        }
+        return 0;
+    }
+    return (size_t)written;
+}
+
+static inline void safe_write_offset(const unsigned char *buf, int len, int offset)
+{
+    if (len > offset) {
+        safe_write(buf + offset, 1, len - offset);
+    }
+}
+
+static void safe_flush()
+{
+    // Direct kernel write via file descriptor; no user-space stdio buffering to flush
+}
+
+static void cache_sps_pps(const void *sps, size_t sps_len, const void *pps, size_t pps_len)
+{
+    if (sps_len + pps_len <= sizeof(cached_sps_pps)) {
+        memcpy(cached_sps_pps, sps, sps_len);
+        if (pps != NULL && pps_len > 0) {
+            memcpy(cached_sps_pps + sps_len, pps, pps_len);
+        }
+        cached_sps_pps_len = sps_len + pps_len;
+    }
 }
 
 void print_usage(char *progname)
@@ -193,7 +307,7 @@ int main(int argc, char **argv)
 
     int c;
     const char memDevice[] = "/dev/mem";
-    FILE *fPtr, *fLen, *fTime, *fOut;
+    FILE *fPtr, *fLen, *fTime;
     int fMem;
     unsigned int ivAddr, ipAddr;
     unsigned int size;
@@ -281,6 +395,8 @@ int main(int argc, char **argv)
         }
     }
 
+    g_debug = debug;
+
     setpriority(PRIO_PROCESS, 0, -10);
 
     if (debug) fprintf(stderr, "Resolution: %d\n", res);
@@ -329,8 +445,15 @@ int main(int argc, char **argv)
     fclose(fLen);
 
     ipAddr = rmm_virt2phys(ivAddr);
+    if (ipAddr == 0) {
+        fprintf(stderr, "Failed to resolve physical address for 0x%08x\n", ivAddr);
+        return -3;
+    }
 
     if (debug) fprintf(stderr, "vaddr: 0x%08x - paddr: 0x%08x - size: %u\n", ivAddr, ipAddr, size);
+
+    signal(SIGINT, sigterm_handler);
+    signal(SIGTERM, sigterm_handler);
 
     // open /dev/mem and error checking
     fMem = open(memDevice, O_RDONLY); // | O_SYNC);
@@ -373,46 +496,53 @@ int main(int argc, char **argv)
         if (setvbuf(stdout, stdoutbuf, _IOFBF, sizeof(stdoutbuf)) != 0) {
             fprintf(stderr, "Error setting stdout buffer\n");
         }
-        fOut = stdout;
+        out_fd = STDOUT_FILENO;
+        is_fifo_mode = 0;
     } else {
-        sigaction(SIGPIPE, &(struct sigaction){sigpipe_handler}, NULL);
+        is_fifo_mode = 1;
+        signal(SIGPIPE, SIG_IGN);
 
         if (res == RESOLUTION_LOW) {
-            unlink(FIFO_NAME_LOW);
-            if (mkfifo(FIFO_NAME_LOW, mode) < 0) {
-                fprintf(stderr, "mkfifo failed for file %s\n", FIFO_NAME_LOW);
-                return -5;
-            }
-            fOut = fopen(FIFO_NAME_LOW, "w");
-            if (fOut == NULL) {
-                fprintf(stderr, "Error opening fifo %s\n", FIFO_NAME_LOW);
-                return -5;
-            }
+            current_fifo_name = FIFO_NAME_LOW;
         } else if (res == RESOLUTION_HIGH) {
-            unlink(FIFO_NAME_HIGH);
-            if (mkfifo(FIFO_NAME_HIGH, mode) < 0) {
-                fprintf(stderr, "mkfifo failed for file %s\n", FIFO_NAME_HIGH);
+            current_fifo_name = FIFO_NAME_HIGH;
+        }
+
+        if (current_fifo_name != NULL) {
+            unlink(current_fifo_name);
+            if (mkfifo(current_fifo_name, mode) < 0 && errno != EEXIST) {
+                fprintf(stderr, "mkfifo failed for file %s: %s\n", current_fifo_name, strerror(errno));
                 return -5;
             }
-            fOut = fopen(FIFO_NAME_HIGH, "w");
-            if (fOut == NULL) {
-                fprintf(stderr, "Error opening fifo %s\n", FIFO_NAME_HIGH);
+            out_fd = open(current_fifo_name, O_RDWR | O_NONBLOCK);
+            if (out_fd < 0) {
+                fprintf(stderr, "Error opening fifo %s: %s\n", current_fifo_name, strerror(errno));
                 return -5;
             }
+            fcntl(out_fd, F_SETPIPE_SZ, 256 * 1024);
+            if (debug) fprintf(stderr, "FIFO %s opened successfully with size %d\n", current_fifo_name, fcntl(out_fd, F_GETPIPE_SZ));
         }
     }
 
-    while (1) {
+    while (g_running) {
 
         fTime = fopen(timeStampFile, "r");
+        if (fTime == NULL) {
+            usleep(10000);
+            continue;
+        }
         fscanf(fTime, "%u", &time);
         fclose(fTime);
         oldTime = time;
 
         stream_started = 0;
 
-        while(!stream_started) {
+        while(!stream_started && g_running) {
             fTime = fopen(timeStampFile, "r");
+            if (fTime == NULL) {
+                usleep(10000);
+                continue;
+            }
             fscanf(fTime, "%u", &time);
             fclose(fTime);
 
@@ -424,6 +554,10 @@ int main(int argc, char **argv)
             usleep(1000);
 
             fLen = fopen(filLenFile, "r");
+            if (fLen == NULL) {
+                usleep(10000);
+                continue;
+            }
             fscanf(fLen, "%d", &len);
             fclose(fLen);
 
@@ -435,57 +569,70 @@ int main(int argc, char **argv)
                     if (!noti) {
                         if (memcmp(SPS4_1920X1080, buffer, sizeof(SPS4_1920X1080)) == 0) {
                             if (debug) fprintf(stderr, "frame is SPS\n");
-                            fwrite(SPS4_1920X1080_TI, 1, sizeof(SPS4_1920X1080_TI), fOut);
-                            fwrite(buffer + sizeof(SPS4_1920X1080), 1, SIZEOF_PPS4, fOut);
-                            fwrite(buffer + OFFSET_IDR4, 1, len - OFFSET_IDR4, fOut);
+                            cache_sps_pps(SPS4_1920X1080_TI, sizeof(SPS4_1920X1080_TI), buffer + sizeof(SPS4_1920X1080), SIZEOF_PPS4);
+                            safe_write(SPS4_1920X1080_TI, 1, sizeof(SPS4_1920X1080_TI));
+                            safe_write(buffer + sizeof(SPS4_1920X1080), 1, SIZEOF_PPS4);
+                            safe_write_offset(buffer, len, OFFSET_IDR4);
                         } else if (memcmp(SPS4_640X360, buffer, sizeof(SPS4_640X360)) == 0) {
                             if (debug) fprintf(stderr, "frame is SPS\n");
-                            fwrite(SPS4_640X360_TI, 1, sizeof(SPS4_640X360_TI), fOut);
-                            fwrite(buffer + sizeof(SPS4_640X360), 1, SIZEOF_PPS4, fOut);
-                            fwrite(buffer + OFFSET_IDR4, 1, len - OFFSET_IDR4, fOut);
+                            cache_sps_pps(SPS4_640X360_TI, sizeof(SPS4_640X360_TI), buffer + sizeof(SPS4_640X360), SIZEOF_PPS4);
+                            safe_write(SPS4_640X360_TI, 1, sizeof(SPS4_640X360_TI));
+                            safe_write(buffer + sizeof(SPS4_640X360), 1, SIZEOF_PPS4);
+                            safe_write_offset(buffer, len, OFFSET_IDR4);
                         } else {
                             // No change if it's a VPS
                             if (debug) fprintf(stderr, "frame is VPS\n");
-                            fwrite(buffer, 1, len, fOut);
+                            cache_sps_pps(buffer, len, NULL, 0);
+                            safe_write(buffer, 1, len);
                         }
                     } else {
                         if (memcmp(SPS4, buffer, sizeof(SPS4)) == 0) {
                             if (debug) fprintf(stderr, "frame is SPS\n");
-                            fwrite(buffer, 1, SIZEOF_SPS4 + SIZEOF_PPS4, fOut);
-                            fwrite(buffer + OFFSET_IDR4, 1, len - OFFSET_IDR4, fOut);
+                            cache_sps_pps(buffer, SIZEOF_SPS4 + SIZEOF_PPS4, NULL, 0);
+                            safe_write(buffer, 1, SIZEOF_SPS4 + SIZEOF_PPS4);
+                            safe_write_offset(buffer, len, OFFSET_IDR4);
                         } else {
                             // No change if it's a VPS
                             if (debug) fprintf(stderr, "frame is VPS\n");
-                            fwrite(buffer, 1, len, fOut);
+                            cache_sps_pps(buffer, len, NULL, 0);
+                            safe_write(buffer, 1, len);
                         }
                     }
                 } else {
                     if (!noti) {
                         if (memcmp(SPS4_1920X1080, buffer, sizeof(SPS4_1920X1080)) == 0) {
                             if (debug) fprintf(stderr, "frame is SPS\n");
-                            fwrite(SPS4_1920X1080_TI, 1, sizeof(SPS4_1920X1080_TI), fOut);
-                            fwrite(buffer + sizeof(SPS4_1920X1080), 1, len - sizeof(SPS4_1920X1080), fOut);
+                            cache_sps_pps(SPS4_1920X1080_TI, sizeof(SPS4_1920X1080_TI), buffer + sizeof(SPS4_1920X1080), SIZEOF_PPS4);
+                            safe_write(SPS4_1920X1080_TI, 1, sizeof(SPS4_1920X1080_TI));
+                            safe_write_offset(buffer, len, sizeof(SPS4_1920X1080));
                         } else if (memcmp(SPS4_640X360, buffer, sizeof(SPS4_640X360)) == 0) {
                             if (debug) fprintf(stderr, "frame is SPS\n");
-                            fwrite(SPS4_640X360_TI, 1, sizeof(SPS4_640X360_TI), fOut);
-                            fwrite(buffer + sizeof(SPS4_640X360), 1, len - sizeof(SPS4_640X360), fOut);
+                            cache_sps_pps(SPS4_640X360_TI, sizeof(SPS4_640X360_TI), buffer + sizeof(SPS4_640X360), SIZEOF_PPS4);
+                            safe_write(SPS4_640X360_TI, 1, sizeof(SPS4_640X360_TI));
+                            safe_write_offset(buffer, len, sizeof(SPS4_640X360));
                         } else {
                             // No change if it's a VPS
                             if (debug) fprintf(stderr, "frame is VPS\n");
-                            fwrite(buffer, 1, len, fOut);
+                            cache_sps_pps(buffer, len, NULL, 0);
+                            safe_write(buffer, 1, len);
                         }
                     } else {
                         if (debug) fprintf(stderr, "frame is SPS or VPS\n");
-                        fwrite(buffer, 1, len, fOut);
+                        cache_sps_pps(buffer, len, NULL, 0);
+                        safe_write(buffer, 1, len);
                     }
                 }
-                fflush(fOut);
+                safe_flush();
                 stream_started = 1;
             }
         }
 
-        while(1) {
+        while(g_running) {
             fTime = fopen(timeStampFile, "r");
+            if (fTime == NULL) {
+                usleep(10000);
+                continue;
+            }
             fscanf(fTime, "%u", &time);
             fclose(fTime);
 //            if (debug) fprintf(stderr, "time: %u\n", time);
@@ -504,6 +651,10 @@ int main(int argc, char **argv)
             usleep(1000);
 
             fLen = fopen(filLenFile, "r");
+            if (fLen == NULL) {
+                usleep(10000);
+                continue;
+            }
             fscanf(fLen, "%d", &len);
             fclose(fLen);
             if (debug) fprintf(stderr, "time: %u - len: %d\n", time, len);
@@ -514,7 +665,7 @@ int main(int argc, char **argv)
             memset(check1, '\0', sizeof(check1));
             fillCheck(check2, sizeof(check2), buffer, len);
 
-            while (memcmp(check1, check2, sizeof(check1)) != 0) {
+            while (memcmp(check1, check2, sizeof(check1)) != 0 && g_running) {
                 usleep(1000);
                 if (debug) fprintf(stderr, "copy again buffer: len %d\n", len);
                 memcpy(buffer, addr, len);
@@ -525,62 +676,71 @@ int main(int argc, char **argv)
 
             if (ssf0) {
                 if (memcmp(SEI4_F0_02, buffer, sizeof(SEI4_F0_02)) == 0) {
-                    fwrite(buffer + 62, 1, len - 62, fOut);
+                    safe_write_offset(buffer, len, 62);
                 } else if (memcmp(SEI4_F0_2C, buffer, sizeof(SEI4_F0_2C)) == 0) {
-                    fwrite(buffer + 52, 1, len - 52, fOut);
+                    safe_write_offset(buffer, len, 52);
                 } else if (memcmp(SPS4, buffer, sizeof(SPS4)) == 0) {
                     if (!noti) {
                         if (memcmp(SPS4_1920X1080, buffer, sizeof(SPS4_1920X1080)) == 0) {
                             if (debug) fprintf(stderr, "frame is SPS\n");
-                            fwrite(SPS4_1920X1080_TI, 1, sizeof(SPS4_1920X1080_TI), fOut);
-                            fwrite(buffer + sizeof(SPS4_1920X1080), 1, SIZEOF_PPS4, fOut);
-                            fwrite(buffer + OFFSET_IDR4, 1, len - OFFSET_IDR4, fOut);
+                            cache_sps_pps(SPS4_1920X1080_TI, sizeof(SPS4_1920X1080_TI), buffer + sizeof(SPS4_1920X1080), SIZEOF_PPS4);
+                            safe_write(SPS4_1920X1080_TI, 1, sizeof(SPS4_1920X1080_TI));
+                            safe_write(buffer + sizeof(SPS4_1920X1080), 1, SIZEOF_PPS4);
+                            safe_write_offset(buffer, len, OFFSET_IDR4);
                         } else if (memcmp(SPS4_640X360, buffer, sizeof(SPS4_640X360)) == 0) {
                             if (debug) fprintf(stderr, "frame is SPS\n");
-                            fwrite(SPS4_640X360_TI, 1, sizeof(SPS4_640X360_TI), fOut);
-                            fwrite(buffer + sizeof(SPS4_640X360), 1, SIZEOF_PPS4, fOut);
-                            fwrite(buffer + OFFSET_IDR4, 1, len - OFFSET_IDR4, fOut);
+                            cache_sps_pps(SPS4_640X360_TI, sizeof(SPS4_640X360_TI), buffer + sizeof(SPS4_640X360), SIZEOF_PPS4);
+                            safe_write(SPS4_640X360_TI, 1, sizeof(SPS4_640X360_TI));
+                            safe_write(buffer + sizeof(SPS4_640X360), 1, SIZEOF_PPS4);
+                            safe_write_offset(buffer, len, OFFSET_IDR4);
                         }
                     } else {
-                        fwrite(buffer, 1, 24, fOut);
-                        fwrite(buffer + 76, 1, len - 76, fOut);
+                        cache_sps_pps(buffer, 24, NULL, 0);
+                        safe_write(buffer, 1, 24);
+                        safe_write_offset(buffer, len, 76);
                     }
                 } else if (memcmp(VPS5, buffer, sizeof(VPS5)) == 0) {
                     if (debug) fprintf(stderr, "frame is VPS\n");
-                    fwrite(buffer, 1, len, fOut);
+                    cache_sps_pps(buffer, len, NULL, 0);
+                    safe_write(buffer, 1, len);
                 } else {
-                    fwrite(buffer, 1, len, fOut);
+                    safe_write(buffer, 1, len);
                 }
             } else {
                 if (!noti) {
                     if (memcmp(SPS4_1920X1080, buffer, sizeof(SPS4_1920X1080)) == 0) {
                         if (debug) fprintf(stderr, "frame is SPS\n");
-                        fwrite(SPS4_1920X1080_TI, 1, sizeof(SPS4_1920X1080_TI), fOut);
-                        fwrite(buffer + sizeof(SPS4_1920X1080), 1, len - sizeof(SPS4_1920X1080), fOut);
+                        cache_sps_pps(SPS4_1920X1080_TI, sizeof(SPS4_1920X1080_TI), buffer + sizeof(SPS4_1920X1080), SIZEOF_PPS4);
+                        safe_write(SPS4_1920X1080_TI, 1, sizeof(SPS4_1920X1080_TI));
+                        safe_write_offset(buffer, len, sizeof(SPS4_1920X1080));
                     } else if (memcmp(SPS4_640X360, buffer, sizeof(SPS4_640X360)) == 0) {
                         if (debug) fprintf(stderr, "frame is SPS\n");
-                        fwrite(SPS4_640X360_TI, 1, sizeof(SPS4_640X360_TI), fOut);
-                        fwrite(buffer + sizeof(SPS4_640X360), 1, len - sizeof(SPS4_640X360), fOut);
+                        cache_sps_pps(SPS4_640X360_TI, sizeof(SPS4_640X360_TI), buffer + sizeof(SPS4_640X360), SIZEOF_PPS4);
+                        safe_write(SPS4_640X360_TI, 1, sizeof(SPS4_640X360_TI));
+                        safe_write_offset(buffer, len, sizeof(SPS4_640X360));
                     } else if (memcmp(VPS5, buffer, sizeof(VPS5)) == 0) {
                         if (debug) fprintf(stderr, "frame is VPS\n");
-                        fwrite(buffer, 1, len, fOut);
+                        cache_sps_pps(buffer, len, NULL, 0);
+                        safe_write(buffer, 1, len);
                     } else {
-                        fwrite(buffer, 1, len, fOut);
+                        safe_write(buffer, 1, len);
                     }
                 } else {
-                    fwrite(buffer, 1, len, fOut);
+                    safe_write(buffer, 1, len);
                 }
             }
-            fflush(fOut);
+            safe_flush();
         }
     }
 
     if (fifo == 1) {
+        if (out_fd >= 0) {
+            close(out_fd);
+            out_fd = -1;
+        }
         if (res == RESOLUTION_LOW) {
-            fclose(fOut);
             unlink(FIFO_NAME_LOW);
         } else if (res == RESOLUTION_HIGH) {
-            fclose(fOut);
             unlink(FIFO_NAME_HIGH);
         }
     }
