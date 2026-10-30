@@ -1,0 +1,71 @@
+name: Build patched rRTSPServer and h264grabber
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix-rtsp-597]
+    paths:
+      - 'src/rRTSPServer/**'
+      - 'src/h264grabber/**'
+      - '.github/workflows/build-rrtspserver.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prefetch build archives on host (container DNS is broken)
+        working-directory: src/rRTSPServer
+        run: |
+          set -e
+          curl -fsSL -o v2.0.1.tar.gz https://github.com/mstorsjo/fdk-aac/archive/v2.0.1.tar.gz
+          curl -fsSL -o live.2023.01.19.tar.gz https://download.videolan.org/pub/contrib/live555/live.2023.01.19.tar.gz
+          ls -lh v2.0.1.tar.gz live.2023.01.19.tar.gz
+
+      - name: Build binaries in yi-hack toolchain image
+        run: |
+          docker run --rm --platform linux/amd64 \
+            --entrypoint bash \
+            --dns 1.1.1.1 --dns 8.8.8.8 \
+            -v "$PWD:/yi-hack-src" \
+            -w /yi-hack-src \
+            borodiliz/yi-hack:latest \
+            -lc '
+              set -e
+              export PATH="/opt/yi/arm-linux-gnueabihf-4.8.3-201404/bin:$PATH"
+              export DEBIAN_FRONTEND=noninteractive
+              # eoan is EOL — use old-releases for libtool/autoconf bits
+              sed -i "s|archive.ubuntu.com|old-releases.ubuntu.com|g; s|security.ubuntu.com|old-releases.ubuntu.com|g" /etc/apt/sources.list || true
+              apt-get update -qq
+              apt-get install -y -qq libtool autoconf automake make wget ca-certificates
+              arm-linux-gnueabihf-gcc --version
+
+              echo "=== Building h264grabber ==="
+              cd /yi-hack-src/src/h264grabber
+              chmod +x compile.h264grabber cleanup.h264grabber || true
+              ./compile.h264grabber
+              file _install/bin/h264grabber
+
+              echo "=== Building rRTSPServer ==="
+              cd /yi-hack-src/src/rRTSPServer
+              chmod +x init.rRTSPServer compile.rRTSPServer install.rRTSPServer || true
+              ./init.rRTSPServer
+              ./compile.rRTSPServer
+              file _install/bin/rRTSPServer
+            '
+
+      - name: Upload rRTSPServer
+        uses: actions/upload-artifact@v4
+        with:
+          name: rRTSPServer-armhf
+          path: src/rRTSPServer/_install/bin/rRTSPServer
+          if-no-files-found: error
+
+      - name: Upload h264grabber
+        uses: actions/upload-artifact@v4
+        with:
+          name: h264grabber-armhf
+          path: src/h264grabber/_install/bin/h264grabber
+          if-no-files-found: error
