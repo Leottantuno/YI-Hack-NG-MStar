@@ -35,7 +35,7 @@ if [ "$MODE" = "scp" ]; then
     export HOST SSH_USER CAM_PW LOCAL REMOTE
     expect << 'EOF'
 set timeout 60
-spawn scp -o StrictHostKeyChecking=accept-new -o PreferredAuthentications=password -o PubkeyAuthentication=no $env(LOCAL) $env(SSH_USER)@$env(HOST):$env(REMOTE)
+spawn scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o PreferredAuthentications=password -o PubkeyAuthentication=no $env(LOCAL) $env(SSH_USER)@$env(HOST):$env(REMOTE)
 expect {
   -re "(?i)password:" { send -- "$env(CAM_PW)\r"; exp_continue }
   eof
@@ -49,7 +49,7 @@ else
     export HOST SSH_USER CAM_PW CMD
     expect << 'EOF'
 set timeout 60
-spawn ssh -o StrictHostKeyChecking=accept-new -o PreferredAuthentications=password -o PubkeyAuthentication=no $env(SSH_USER)@$env(HOST) $env(CMD)
+spawn ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR -o PreferredAuthentications=password -o PubkeyAuthentication=no $env(SSH_USER)@$env(HOST) $env(CMD)
 expect {
   -re "(?i)password:" { send -- "$env(CAM_PW)\r"; exp_continue }
   eof

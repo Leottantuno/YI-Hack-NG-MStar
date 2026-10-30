@@ -97,6 +97,7 @@ elif [ "$VAL" == "upgrade" ] ; then
     if [ -f $YI_HACK_PREFIX/etc/passwd ]; then
         cp $YI_HACK_PREFIX/etc/passwd .
     fi
+    touch $YI_HACK_PREFIX/.fw_upgrade_in_progress
 
     # Report the status to the caller
     printf "Content-type: text/html\r\n\r\n"

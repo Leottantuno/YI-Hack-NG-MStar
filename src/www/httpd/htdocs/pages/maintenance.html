@@ -41,13 +41,35 @@
             <div class="six columns">
                 <div class="card">
                     <div class="card-title">Firmware Upgrade</div>
-                    <p style="font-size:1.25rem;color:var(--text-muted);margin-bottom:12px;">
+                    
+                    <label style="font-size:1.15rem;font-weight:600;margin-bottom:4px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Online Upgrade</label>
+                    <p style="font-size:1.2rem;color:var(--text-muted);margin-bottom:8px;">
                         Check GitHub releases or local SD storage for firmware updates.
                     </p>
-                    <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
                         <input class="u-full-width" type="text" readonly="" data-key="FW" id="FW" placeholder="Checking for updates..." style="margin-bottom:0;"/>
-                        <input class="button-primary btn-sm" type="button" id="button-upgrade" value="Upgrade Firmware" style="white-space:nowrap;"/>
+                        <input class="button-primary btn-sm" type="button" id="button-upgrade" value="Upgrade Online" style="white-space:nowrap;"/>
                     </div>
+
+                    <div style="border-top:1px solid var(--card-border);margin:14px 0;"></div>
+
+                    <label style="font-size:1.15rem;font-weight:600;margin-bottom:4px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Manual Upload (.tgz)</label>
+                    <p style="font-size:1.2rem;color:var(--text-muted);margin-bottom:8px;">
+                        Select a firmware archive (e.g. <code>y203c_0.1.0.tgz</code>) to upload and install.
+                    </p>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <input type="file" id="fw-file" accept=".tgz,.tar.gz" style="font-size:11px;flex:1 1 200px;margin-bottom:0;"/>
+                        <input class="button-primary btn-sm" type="button" id="button-upload-fw" value="Upload &amp; Install" disabled style="white-space:nowrap;"/>
+                    </div>
+
+                    <div id="fw-upload-progress-container" style="display:none;margin-top:12px;">
+                        <div style="background:var(--card-border);border-radius:4px;height:8px;overflow:hidden;width:100%;">
+                            <div id="fw-upload-progress-bar" style="background:var(--primary);height:100%;width:0%;transition:width 0.2s ease;"></div>
+                        </div>
+                        <div id="fw-upload-progress-text" style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:right;">0%</div>
+                    </div>
+
+                    <div id="fw-upload-status" style="font-size:12px;margin-top:8px;display:none;"></div>
                 </div>
 
                 <div class="card">

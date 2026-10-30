@@ -26,6 +26,12 @@ APP.maintenance = (function($) {
         $(document).on("click", '#button-upgrade', function(e) {
             upgradeFirmware();
         });
+        $(document).on("change", '#fw-file', function(e) {
+            onFwFileSelected();
+        });
+        $(document).on("click", '#button-upload-fw', function(e) {
+            uploadFirmware();
+        });
         $(document).on("click", '#button-umount', function(e) {
             umountSD();
         });
@@ -155,6 +161,91 @@ APP.maintenance = (function($) {
         });
     }
 
+    function onFwFileSelected() {
+        var fileInput = document.getElementById('fw-file');
+        var button = $('#button-upload-fw');
+        var statusDiv = $('#fw-upload-status');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            button.prop('disabled', true);
+            statusDiv.hide().text('');
+            return;
+        }
+        var file = fileInput.files[0];
+        var sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        statusDiv.css('color', 'var(--text-muted)').text('Selected: ' + file.name + ' (' + sizeMB + ' MB)').show();
+        button.prop('disabled', false);
+    }
+
+    function uploadFirmware() {
+        var fileInput = document.getElementById('fw-file');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+        var file = fileInput.files[0];
+        if (!confirm("Are you sure you want to upload and install " + file.name + "?\nThe camera will reboot and flash the new firmware.")) {
+            return;
+        }
+
+        $('#button-upload-fw').prop('disabled', true);
+        $('#button-upgrade').prop('disabled', true);
+        $('#fw-file').prop('disabled', true);
+        $('#fw-upload-progress-container').show();
+        $('#fw-upload-progress-bar').css('width', '0%');
+        $('#fw-upload-progress-text').text('0%');
+
+        var statusDiv = $('#fw-upload-status');
+        statusDiv.css('color', 'var(--primary)').text('Starting upload...').show();
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'cgi-bin/fw_upload.sh', true);
+        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                var percent = Math.round((e.loaded / e.total) * 100);
+                var loadedMB = (e.loaded / (1024 * 1024)).toFixed(1);
+                var totalMB = (e.total / (1024 * 1024)).toFixed(1);
+                $('#fw-upload-progress-bar').css('width', percent + '%');
+                $('#fw-upload-progress-text').text(percent + '% (' + loadedMB + ' MB / ' + totalMB + ' MB)');
+                if (percent >= 100) {
+                    statusDiv.css('color', 'var(--primary)').text('Upload complete. Verifying archive & preparing upgrade...');
+                } else {
+                    statusDiv.css('color', 'var(--text-muted)').text('Uploading: ' + percent + '%');
+                }
+            }
+        };
+
+        xhr.onload = function() {
+            var res;
+            try {
+                res = JSON.parse(xhr.responseText);
+            } catch(e) {
+                res = { error: xhr.status !== 200, message: xhr.responseText || 'Server error' };
+            }
+
+            if (xhr.status === 200 && !res.error) {
+                $('#fw-upload-progress-bar').css('width', '100%');
+                $('#fw-upload-progress-text').text('100%');
+                statusDiv.css('color', '#10b981').text(res.message || 'Upgrade initiated! Rebooting camera...');
+                waitForUpgrade();
+            } else {
+                statusDiv.css('color', '#ef4444').text('Error: ' + (res.message || 'Upload failed'));
+                $('#button-upload-fw').prop('disabled', false);
+                $('#button-upgrade').prop('disabled', false);
+                $('#fw-file').prop('disabled', false);
+                $('#fw-upload-progress-container').hide();
+            }
+        };
+
+        xhr.onerror = function() {
+            statusDiv.css('color', '#ef4444').text('Network error during firmware upload.');
+            $('#button-upload-fw').prop('disabled', false);
+            $('#button-upgrade').prop('disabled', false);
+            $('#fw-file').prop('disabled', false);
+            $('#fw-upload-progress-container').hide();
+        };
+
+        xhr.send(file);
+    }
+
     function waitForUpgrade() {
         setInterval(function() {
             $.ajax({
@@ -162,11 +253,13 @@ APP.maintenance = (function($) {
                 cache: false,
                 success: function(data) {
                     setFwStatus("Camera is upgrading.");
+                    $('#fw-upload-status').css('color', '#10b981').text("Camera is back online!");
                     $('#button-upgrade').attr("disabled", false);
                     window.location.href = "index.html";
                 },
                 error: function(data) {
                     setFwStatus("Waiting for the camera to come back online...");
+                    $('#fw-upload-status').css('color', 'var(--primary)').text("Waiting for the camera to reboot and come back online...");
                 },
                 timeout: 3000,
             });
