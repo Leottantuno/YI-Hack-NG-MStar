@@ -1,248 +1,259 @@
+# yi-hack-mstar-ng
+
 <p align="center">
-	<img height="200" src="https://user-images.githubusercontent.com/39277388/85948999-59034780-b954-11ea-8fb3-c4c88727cf5b.png">
+  <img height="180" src="https://user-images.githubusercontent.com/39277388/85948999-59034780-b954-11ea-8fb3-c4c88727cf5b.png" alt="yi-hack logo">
 </p>
 
 <p align="center">
-	<a target="_blank" href="https://github.com/roleoroleo/yi-hack-MStar/releases">
-		<img src="https://img.shields.io/github/downloads/roleoroleo/yi-hack-MStar/total.svg" alt="Releases Downloads">
-	</a>
+  <a href="https://github.com/Leottantuno/yi-hack-MStar/actions/workflows/build-rrtspserver.yml">
+    <img src="https://github.com/Leottantuno/yi-hack-MStar/actions/workflows/build-rrtspserver.yml/badge.svg" alt="Build Status">
+  </a>
+  <a href="https://github.com/Leottantuno/yi-hack-MStar/releases">
+    <img src="https://img.shields.io/github/v/release/Leottantuno/yi-hack-MStar?include_prereleases&label=Release" alt="Latest Release">
+  </a>
+  <a href="https://www.gnu.org/licenses/gpl-3.0">
+    <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="GPLv3 License">
+  </a>
 </p>
 
-# Custom firmware for Yi camera based on MStar platform
-This firmware is based on the work done by TheCrypt0
-https://github.com/TheCrypt0/yi-hack-v4
-It's a clone made for Yi cameras based on MStar platform.
+**yi-hack-mstar-ng** (Next Generation) is an open-source custom firmware distribution for Yi security cameras based on the **MStar Infinity** SoC platform. 
 
-**But you can't choose between TheCrypt0 and MStar: if your cam is based on Hi3518e Chipset then you have to use TheCrypt0, if your cam is based on MStar Infinity Chipset then you have to use MStar.**
+It modernizes and stabilizes the legacy *yi-hack-MStar* project, introducing non-blocking RTSP streaming pipelines, deadlock prevention between video capture and streaming daemons, resilient watchdog process management, automated GitHub Actions container builds, and streamlined deployment tools.
 
-I have no time to support the project, so feel free to clone/fork this git and modify it as you want.
+---
+
+## Key Highlights & Improvements
+
+- **Reliable RTSP Streaming**:
+  - `h264grabber`: Captures H.264 streams directly from kernel memory and writes to named FIFO pipes using non-blocking I/O (`O_RDWR | O_NONBLOCK`) with strict buffer pacing and safety guards to eliminate thread freezes and `SIGPIPE` aborts.
+  - `rRTSPServer`: Powered by a custom Live555 `ByteStreamFifoSource` designed specifically for non-blocking asynchronous FIFO reads, preventing server thread lockups when players (VLC, Home Assistant, go2rtc, WebRTC) disconnect or reconnect.
+- **Robust Service Lifecycle & Watchdog**:
+  - `wd.sh`: Fully patched against infinite restart loops and monitoring race conditions. Services are sequenced gracefully without causing sporadic device reboots.
+- **Cloud-Free & Local First**:
+  - Complete control over camera telemetry: disable proprietary cloud features, access local web interface, RTSP, ONVIF, MQTT, SSH, FTP, and snapshot endpoints.
+- **Modern CI & Cross-Compilation**:
+  - Automated GitHub Actions builds compiling ARM binaries in Docker (`borodiliz/yi-hack`), resolving legacy Debian archive and DNS resolution issues.
+- **Developer & Deployment Helpers**:
+  - Integrated `scripts/cam_ssh.sh` utility to automate SSH/SCP deployment and hot-reloading on physical cameras.
+
+---
 
 ## Table of Contents
-- [Table of Contents](#table-of-contents)
-- [Installation](#installation)
-- [Contributing](#contributing-and-bug-reports)
+
+- [Supported Cameras](#supported-cameras)
+- [Architecture & How It Works](#architecture--how-it-works)
 - [Features](#features)
-- [RTSP Server](#rtsp-server)
-- [Performance](#performance)
-- [Supported cameras](#supported-cameras)
-- [Is my cam supported?](#is-my-cam-supported)
-- [Home Assistant integration](#home-assistant-integration)
-- [Build your own firmware](#build-your-own-firmware)
-- [Unbricking](#unbricking)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
+- [Installation Guide](#installation-guide)
+  - [Option A: Hot Update for Existing yi-hack Cameras (No Re-flash)](#option-a-hot-update-for-existing-yi-hack-cameras-no-re-flash)
+  - [Option B: Fresh Installation from SD Card](#option-b-fresh-installation-from-sd-card)
+- [Services & Configuration](#services--configuration)
+  - [RTSP Video & Audio Stream URLs](#rtsp-video--audio-stream-urls)
+  - [Snapshot API](#snapshot-api)
+  - [Home Assistant Integration](#home-assistant-integration)
+- [Development & Building](#development--building)
+- [Heritage, Credits & License](#heritage-credits--license)
 - [Disclaimer](#disclaimer)
-- [Donation](#donation)
 
-## Installation
+---
 
-### Install Procedure
-1. Check if your cam is supported in the "Supported cameras" section and note the file prefix.
-2. Format an SD Card as FAT32. It's recommended to format the card in the camera using the camera's native format function. If the card is already formatted, remove all the files.
-3. Download the latest release from [the Releases page](https://github.com/roleoroleo/yi-hack-MStar/releases) based on the file prefix.
-4. Extract the contents of the archive to the root of your SD card (for example home_y203c and sys_y203c).
-5. Insert the SD Card and reboot the camera.
-6. The yellow light will come ON and flash for roughly 30 seconds, which means the firmware is being flashed successfully. The camera will boot up.
-7. The yellow light will come ON again for the final stage of flashing. This will take up to 2 minutes.
-8. Blue light should come ON indicating that your WiFi connection has been successful (if not disable using app).
-9. Go in the browser and access the web interface of the camera as a website (http://IP-CAM) where IP-CAM is the IP address of your cam and you can find it using the mobile app (Camera Settings --> Network Info --> IP Address). If the mobile app can't be paired, you may look for the IP on your router's portal (see connected devices).
-10. Done.
+## Supported Cameras
 
-### Online Update Procedure
-1. Go to the "Maintenance" web page
-2. Check if a new release is available
-3. Click "Upgrade Firmware"
-4. Wait for cam reboot
+This firmware supports cameras running the **MStar Infinity** chipset family.
 
-### Manual Update Procedure
-Check the wiki: https://github.com/roleoroleo/yi-hack-MStar/wiki/Manual-firmware-upgrade
+> [!NOTE]  
+> If your camera uses a **HiSilicon Hi3518e** chipset, use [TheCrypt0/yi-hack-v4](https://github.com/TheCrypt0/yi-hack-v4).  
+> If your camera uses an **Allwinner** chipset, use [roleoroleo/yi-hack-Allwinner-v2](https://github.com/roleoroleo/yi-hack-Allwinner-v2).
 
+| Camera Model | Stock FW Version | File Prefix | Status / Notes |
+| :--- | :---: | :---: | :--- |
+| **Yi 1080p Home 4FUS** | 4.5.0* | `y203c` | Fully supported |
+| **Yi 1080p Home 6FUS** | 4.5.0* | `y203c` | Fully supported |
+| **Yi 1080p Home 9FUS** | 4.5.0* | `y203c` | Fully supported |
+| **Yi 1080p Home BFUS** | 4.5.0* | `y203c` | Fully supported |
+| **Yi 1080p Dome 6FUS** | 4.6.0* | `h201c` | Fully supported |
+| **Yi 1080p Dome BFUS** | 4.6.0* | `h201c` | Fully supported |
+| **Yi 1080p Dome 4FCN** | 4.6.0* | `h201c` | Fully supported |
+| **Yi 1080p Home 4FUS** | 4.2.0* | `y25` | Supported |
+| **Yi 1080p Home 9FUS** | 4.2.0* | `y25` | Supported |
+| **XiaoYi Camera Y3 9FCN**| 4.2.0* | `y25` | Supported |
+| **Yi 1080p Home 6FUS** | 2.1.0* | `y23` | Supported |
+| **Yi 1080p Home 6FCN** | unknown | `y203c` | Supported |
+| **Yi 1080p Home 4FCN** | unknown | `y23` | Supported |
+| **Yi 1080p Home 5FCN** | 2.1.0* | `y23` | Supported |
+| **YI Dome Camera X** | 4.0.0* | `y30` | Experimental |
+| **YI Home Camera H7** | 4.4.0* | `h307` | Experimental |
+| **ieGeek IE80** | 8.0.0* | `h305r` | Experimental |
 
-### Optional Utilities
-Several [optional utilities](https://github.com/roleoroleo/yi-hack-utils) are avaiable, some supporting experimental features like text-to-speech.
+*To determine if your camera is supported, verify that the first 4 characters of your serial number and the firmware version match an entry in the table above.*
 
+---
 
-## Contributing and Bug Reports
-See [CONTRIBUTING](CONTRIBUTING.md)
+## Architecture & How It Works
+
+```
+                        +----------------------------+
+                        | MStar Kernel Video Driver  |
+                        +--------------+-------------+
+                                       |
+                               (Kernel Memory)
+                                       v
+                              [ h264grabber ]
+                                       |
+                     (Non-blocking O_RDWR FIFO pipes)
+                      /tmp/mstar_fifo_ch0 (High Res)
+                      /tmp/mstar_fifo_ch1 (Low Res)
+                                       v
+                              [ rRTSPServer ]
+                      (ByteStreamFifoSource Live555)
+                                       |
+                                       +<--- Audio: TinyAlsa wrapper -> /tmp/audio_fifo
+                                       |
+                                       v
+                     RTSP Clients (VLC / go2rtc / HA)
+```
+
+1. **Video Streaming Pipeline**:
+   - `h264grabber` reads encoded frames directly from MStar kernel device memory and feeds them into named pipes (`/tmp/mstar_fifo_ch0` and `/tmp/mstar_fifo_ch1`).
+   - `rRTSPServer` reads from these pipes through an event-driven `ByteStreamFifoSource`.
+   - By using non-blocking file descriptors on both sides, reader or writer delays do not lock up the opposing process.
+2. **Audio Pipeline**:
+   - A replacement `TinyAlsa` library intercepts audio from the kernel sound driver, downmixes 16-bit 16kHz stereo to mono, compresses it to 8-bit $\mu$-law (128 kbps), and pipes it to `rRTSPServer`.
+3. **Supervision**:
+   - `wd.sh` (watchdog script) oversees `rmm`, `h264grabber`, and `rRTSPServer` health, kicking the hardware watchdog (`/dev/watchdog`) to prevent system crashes while avoiding unnecessary service flapping.
 
 ---
 
 ## Features
-This custom firmware contains features replicated from the [yi-hack-MStar](https://github.com/roleoroleo/yi-hack-MStar) project and similar to the [yi-hack-v4](https://github.com/TheCrypt0/yi-hack-v4) project.
 
-- FEATURES
-  - RTSP server - allows a RTSP stream of the video (high and/or low resolution) and audio (thanks to @PieVo for the work on MStar platform).
-    - rtsp://IP-CAM/ch0_0.h264             (high res)
-    - rtsp://IP-CAM/ch0_1.h264             (low res)
-    - rtsp://IP-CAM/ch0_2.h264             (only audio)
-  - ONVIF server (with support for stream, snapshot, ptz, presets, events and WS-Discovery) - standardized interfaces for IP cameras.
-  - Snapshot service - allows to get a jpg with a web request.
-    - http://IP-CAM/cgi-bin/snapshot.sh?res=low&watermark=yes        (select resolution: low or high, and watermark: yes or no)
-    - http://IP-CAM/cgi-bin/snapshot.sh                              (default high without watermark)
-  - Timelapse feature
-  - MQTT events - Motion detection and baby crying detection through mqtt protocol.
-  - MQTT configuration
-  - Web server - web configuration interface.
-  - SSH server - dropbear.
-  - Telnet server - busybox.
-  - FTP server.
-  - FTP push: export mp4 video to an FTP server (thanks to @Catfriend1).
-  - Authentication for HTTP, RTSP and ONVIF server.
-  - Proxychains-ng - Disabled by default. Useful if the camera is region locked.
-  - Original watermark image removed.
-  - The possibility to change some camera settings (copied from official app):
-    - camera on/off
-    - video saving mode
-    - detection sensitivity
-    - motion detections (it depends on your cam and your plan)
-    - baby crying detection
-    - status led
-    - ir led
-    - rotate
-    - ...
-  - Management of motion detect events and videos through a web page.
-  - View recorded video through a web page (thanks to @BenjaminFaal).
-  - PTZ support through a web page (if the cam supports it).
-  - PTZ presets.
-  - The possibility to disable all the cloud features.
-  - Swap File on SD.
-  - Online firmware upgrade.
-  - Load/save/reset configuration.
+- **RTSP Server**: High resolution, low resolution, and audio-only streaming endpoints.
+- **ONVIF Server**: Profile S compliant (stream profiles, snapshots, PTZ controls and presets, WS-Discovery).
+- **Snapshot Service**: HTTP GET snapshot endpoints with optional resolution selection and watermark removal.
+- **Local Web Interface**: Intuitive management panel for configuration, network, and camera controls.
+- **MQTT Broker Client**: Real-time event notifications for motion detection and baby crying detection.
+- **Remote Access Protocols**:
+  - SSH (`dropbear`)
+  - Telnet (`busybox`)
+  - FTP daemon
+  - FTP Push: Automatic upload of motion mp4 recordings to an external FTP server.
+- **Privacy & Cloud Isolation**: Complete switch to disable cloud connection, preventing camera video and telemetry from leaving your local network.
 
-- ADDITIONAL FEATURES
-  - Google Drive synchronization - https://github.com/roleoroleo/yi-hack-MStar.gdrive
-  - Microsoft OneDrive synchronization - https://github.com/denven/yihack-onedrive-uploader  
-  - rsync synchronization thanks to @hetzbh - https://github.com/hetzbh/yi-cams-backup
+---
 
-## RTSP Server
-I wrote a daemon that reads the video stream directly from the kernel driver memory and sends it to an application based on live555.
-I was inspired by the following topic:
-- @andy2301 - [Ideas for the RSTP rtsp and rtsp2301](https://github.com/xmflsct/yi-hack-1080p/issues/5#issuecomment-294326131)
+## Installation Guide
 
-The RTSP server code derives from live555 - http://www.live555.com/ and from the archive rtsp2303_srcbin_20170414-1630.zip posted in the link above.
+### Option A: Hot Update for Existing yi-hack Cameras (No Re-flash)
 
-### RTSP audio support (many thanks to @PieVo for adding it)
-The datapath of the audio is as follows:
-Mic -> ADC -> Kernel sound driver -> TinyAlsa lib -> OMX ALSA plugin -> Camera application (rmm)
+If your camera is already running `yi-hack-MStar` (v0.5.8 or similar), you **do not** need to re-flash your SD card. You can apply the new non-blocking RTSP pipeline and watchdog fixes directly:
 
-To maintain audio support for the original Yi application, the audio should be cloned at one of the steps with the following in mind:
-- Kernel driver can be used by 1 "sink"
-- TinyAlsa can only openend by one "sink"
-- OMX libs are closed source and are not compatible with the "available" I1 SDK.
+1. Download the latest compiled binaries (`rRTSPServer`, `h264grabber`) from [GitHub Actions Artifacts or Releases](https://github.com/Leottantuno/yi-hack-MStar/actions).
+2. Transfer the patched files to the camera:
+   - Copy `rRTSPServer` and `h264grabber` to `/home/yi-hack/bin/` (or `/tmp/sd/yi-hack/bin/`).
+   - Ensure execution permissions: `chmod +x /home/yi-hack/bin/rRTSPServer /home/yi-hack/bin/h264grabber`.
+   - Copy `wd.sh` to `/home/yi-hack/script/wd.sh`.
+3. Restart services or reboot the camera.
 
-Audio support is implemented by replacing the original TinyAlsa library with a version that copies the read audio frames to a pipe. This pipe is read by the RTSP server. The RTSP server uses a patched WAVFileSource to read the audio data from the pipe. (Since it tries to read the WAV header 2x I saw no (quick) other way than to hardcode the PCM format into the WAVFileSource code.)
-
-Additionally:
-- The OMX ALSA library reads audio in 16-bit 16000Hz stereo, one channel is just empty. To reduce streaming bandwidth the TinyAlsa replacement library converts the stereo data to mono.
-- To reduce streaming bandwidth even further, the 16-bit PCM data is converted to 8-bit uLaw and finally results in 128kbit/s.
-
-## Performance
-The performance of the cam is not so good (CPU, RAM, etc...).
-If you enable all the services you may have some problems.
-For example, enabling both rtsp streams is not recommended.
-Disable cloud is recommended to save resources.
-
-## Supported cameras
-Currently this project supports only the following cameras:
-
-| Camera | Firmware | File prefix | Remarks |
-| --- | --- | --- | --- |
-| **Yi 1080p Home 4FUS** | 4.5.0* | y203c | - |
-| **Yi 1080p Home 6FUS** | 4.5.0* | y203c | - |
-| **Yi 1080p Home 9FUS** | 4.5.0* | y203c | - |
-| **Yi 1080p Home BFUS** | 4.5.0* | y203c | - |
-| **Yi 1080p Dome 6FUS** | 4.6.0* | h201c | Thanks to @skylarhays |
-| **Yi 1080p Dome BFUS** | 4.6.0* | h201c | Thanks to @skylarhays |
-| **Yi 1080p Dome 4FCN** | 4.6.0* | h201c | - |
-| **Yi 1080p Home 4FUS** | 4.2.0* | y25 | - |
-| **Yi 1080p Home 9FUS** | 4.2.0* | y25 | - |
-| **XiaoYi Camera Y3 9FCN**| 4.2.0* | y25 | - |
-| **Yi 1080p Home 6FUS** | 2.1.0* | y23 | - |
-| **Yi 1080p Home 6FCN** | unknown | y203c | - |
-| **Yi 1080p Home 4FCN** | unknown | y23 | - |
-| **Yi 1080p Home 5FCN** | 2.1.0* | y23 | - |
-| **YI Dome Camera X** | 4.0.0* | y30 | Experimental - https://github.com/roleoroleo/yi-hack-MStar/issues/262 |
-| **YI Home Camera H7** | 4.4.0* | h307 | Experimental |
-| **ieGeek IE80** | 8.0.0* | h305r | Experimental |
-
-
-This firmware completely overwrite the original firmware.
-So, USE AT YOUR OWN RISK.
-
-**Do not try to use a fw on an unlisted model**
-
-**Do not try to force the fw loading renaming the files**
-
-## Is my cam supported?
-If you want to know if your cam is supported, please check the serial number (first 4 letters) and the firmware version.
-If both numbers appear in the same row in the table above, your cam is supported.
-If not, check the other projects related to Yi cams:
-- https://github.com/TheCrypt0/yi-hack-v4 and previous
-- https://github.com/roleoroleo/yi-hack-Allwinner
-- https://github.com/roleoroleo/yi-hack-Allwinner-v2
-
-## Home Assistant integration
-Are you using Home Assistant? Do you want to integrate your cam? Try these custom integrations:
-- https://github.com/roleoroleo/yi-hack_ha_integration
-- https://github.com/AlexxIT/WebRTC
-
-You can also use the [web services](https://github.com/roleoroleo/yi-hack-MStar/wiki/Web-services-description) in Home Assistant -- here's one way to do that. (This example requires the nanotts optional utility to be installed on the camera.) Set up a rest_command in your configuration.yaml to call one of the [web services](https://github.com/roleoroleo/yi-hack-MStar/wiki/Web-services-description). 
+#### Quick deploy using `cam_ssh.sh`:
+Create a `.env` file based on `.env.example`:
+```bash
+CAM_HOST=192.168.1.100
+CAM_PW=your_password
 ```
-rest_command:
-  camera_announce:
-    url: http://[camera address]/cgi-bin/speak.sh?lang={{language}}&voldb={{volume}}
-    method: POST
-    payload: "{{message}}"
+Then run:
+```bash
+./scripts/cam_ssh.sh --scp src/rRTSPServer/_install/bin/rRTSPServer /tmp/sd/yi-hack/bin/rRTSPServer
+./scripts/cam_ssh.sh --scp src/h264grabber/_install/bin/h264grabber /tmp/sd/yi-hack/bin/h264grabber
+./scripts/cam_ssh.sh --scp src/static/static/home/yi-hack/script/wd.sh /tmp/sd/yi-hack/script/wd.sh
+./scripts/cam_ssh.sh 'killall -9 rRTSPServer h264grabber; sleep 1; /home/yi-hack/script/wd.sh &'
 ```
-Create an automation and use yaml in the action to send data to the web service. 
+
+---
+
+### Option B: Fresh Installation from SD Card
+
+1. Check that your camera model and firmware version are listed in [Supported Cameras](#supported-cameras) and note your **File Prefix** (e.g. `y203c`).
+2. Format a micro-SD card (FAT32, 32GB or smaller recommended) using the camera's native format option or your computer.
+3. Download the firmware release archive corresponding to your file prefix.
+4. Extract the contents (e.g. `home_<prefix>` and `sys_<prefix>`) to the root of the SD card.
+5. With the camera powered off, insert the SD card and plug in the power.
+6. The status LED will illuminate yellow and flash for ~30 seconds while writing.
+7. After reboot, the yellow LED will stay on for 1-2 minutes during the final initialization.
+8. A steady blue LED indicates a successful Wi-Fi connection.
+9. Open your web browser and navigate to `http://<IP-OF-CAMERA>` to configure settings.
+
+---
+
+## Services & Configuration
+
+### RTSP Video & Audio Stream URLs
+
+| Stream | URL | Description |
+| :--- | :--- | :--- |
+| **High Resolution (1080p)** | `rtsp://<CAM-IP>/ch0_0.h264` | Full resolution video + audio |
+| **Low Resolution (360p)** | `rtsp://<CAM-IP>/ch0_1.h264` | Lower bandwidth video + audio |
+| **Audio Only** | `rtsp://<CAM-IP>/ch0_2.h264` | G.711 $\mu$-law audio stream |
+
+*If authentication is enabled in the Web UI, use `rtsp://<username>:<password>@<CAM-IP>/ch0_0.h264`.*
+
+### Snapshot API
+
+- **High Resolution**: `http://<CAM-IP>/cgi-bin/snapshot.sh`
+- **Low Resolution without watermark**: `http://<CAM-IP>/cgi-bin/snapshot.sh?res=low&watermark=no`
+
+---
+
+### Home Assistant Integration
+
+For zero-latency local streaming into Home Assistant, we recommend **go2rtc** or the **WebRTC Camera** custom component:
+
+```yaml
+# go2rtc.yaml configuration
+streams:
+  yi_camera_high:
+    - rtsp://admin:password@192.168.1.100/ch0_0.h264
+  yi_camera_low:
+    - rtsp://admin:password@192.168.1.100/ch0_1.h264
 ```
-service: rest_command.camera_announce
-data:
-  language: en-US
-  message: "All your base are belong to us."
-  volume: '-8'
-``` 
 
-## Build your own firmware
-If you want to build your own firmware, clone this git and compile using a linux machine.
-Quick explanation:
-- Download and install the SDK for MStar platform: the file name is "MStar MSC3XX SDK.zip" (Google is your friend).
-- Prepare the system installing all the necessary packages.
-- Or you can use the following docker image https://hub.docker.com/r/borodiliz/yi-hack (thanks to@ borodiliz).
-- Copy original home and rootfs partition files to ./stock_firmware/... (don't ask me where to find them).
-- git submodule update --init
-- ./scripts/init_sysroot.all.sh
-- ./scripts/compile.sh
-- ./scripts/pack_fw.all.sh
+Alternatively, integrate via Home Assistant's native generic camera platform or ONVIF integration.
 
-### Dev tips
-- If you kill the "rmm" process, the watchdog will reset the camera. This can be prevented by kicking it yourself in a seperate shell: while [ 1 ] ; do sleep 1; echo .; echo V > /dev/watchdog; done
-- The "rmm" process can be started with a different set of OMX Libraries by setting environment variables OMX_LIB_PATH and LD_LIBRARY_PATH. That way you dont have to overwrite the original files and possibly brick the system. For instance: OMX_LIB_PATH=/tmp/sd/test/ms LD_LIBRARY_PATH=/home/lib:/lib:/usr/lib:/usr/local/lib:/tmp/sd/test/ms:/home/app/locallib /home/app/rmm
-- The I1 SDK is not compatible with this camera. When using the OMX libraries from the system with the headers from the SDK, most applications end up with a "Floating point exception". Possibly the headers do not match the libraries or one of the kernel interfaces.
+---
 
-## Unbricking
-If your camera doesn't start repeat the hack as described above (with a lower/higher version) .
-You can use the same procedure even if you have a backup copy of the original partitions.
-If the bootloader works correctly the camera will restart.
+## Development & Building
 
-----
+The binaries are cross-compiled for ARM (`arm-linux-gnueabihf`). You can compile locally using Docker without installing the proprietary toolchain on your host OS:
 
-## License
-[GPLv3](https://choosealicense.com/licenses/gpl-3.0/)
+```bash
+# Pull the preconfigured build toolchain container
+docker pull borodiliz/yi-hack:latest
 
-## Acknowledgments
-Special thanks to the following people for the previous projects I started from.
-- @TheCrypt0 - [https://github.com/TheCrypt0/yi-hack-v4](https://github.com/TheCrypt0/yi-hack-v4)
-- @andy2301 - [Ideas for the RTSP](https://github.com/xmflsct/yi-hack-1080p/issues/5#issuecomment-298093437)
-- All the people who worked on the previous projects "yi-hack".
+# Build h264grabber
+cd src/h264grabber
+./compile.h264grabber
 
-## DISCLAIMER
-**NOBODY BUT YOU IS RESPONSIBLE FOR ANY USE OR DAMAGE THIS SOFTWARE MAY CAUSE. THIS IS INTENDED FOR EDUCATIONAL PURPOSES ONLY. USE AT YOUR OWN RISK.**
+# Build rRTSPServer
+cd src/rRTSPServer
+./init.rRTSPServer
+./compile.rRTSPServer
+```
 
-## Donation
-If you like this project, you can buy roleo a beer :)
+Alternatively, push changes to the repository and download the artifacts automatically compiled by the GitHub Actions workflow in `.github/workflows/build-rrtspserver.yml`.
 
-Click [here](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=JBYXDMR24FW7U&currency_code=EUR&source=url) or use the below QR code to donate via PayPal
-<p align="center">
-  <img src="https://github.com/roleoroleo/yi-hack-MStar/assets/39277388/35b9db58-4013-4bf9-845c-2028a769662d"/>
-</p>
+---
+
+## Heritage, Credits & License
+
+**yi-hack-mstar-ng** is built upon the ingenuity and dedication of the open-source reverse engineering community:
+
+- **[@roleoroleo](https://github.com/roleoroleo)**: Original creator and maintainer of [yi-hack-MStar](https://github.com/roleoroleo/yi-hack-MStar), [yi-hack-Allwinner](https://github.com/roleoroleo/yi-hack-Allwinner), and Home Assistant integration.
+- **[@TheCrypt0](https://github.com/TheCrypt0)**: Author of [yi-hack-v4](https://github.com/TheCrypt0/yi-hack-v4), pioneering custom firmware on Yi devices.
+- **[@PieVo](https://github.com/PieVo)**: Audio subsystem reverse engineering and TinyAlsa mono/$\mu$-law redirection.
+- **@andy2301**: RTSP architecture and initial memory capture concepts.
+- **[@borodiliz](https://github.com/borodiliz)**: Dockerized cross-compilation toolchain for MStar.
+
+This software is released under the **GNU General Public License v3 (GPLv3)**. See the `LICENSE` file for details.
+
+---
+
+## Disclaimer
+
+**USE AT YOUR OWN RISK.** Modifying camera firmware carries inherent risks of bricking hardware or voiding manufacturer warranties. The authors and contributors accept no responsibility for damages, data loss, or bricked devices. This project is developed purely for educational and local-privacy enhancement purposes.

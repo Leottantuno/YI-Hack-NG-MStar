@@ -277,6 +277,30 @@ static void cache_sps_pps(const void *sps, size_t sps_len, const void *pps, size
     }
 }
 
+static inline int read_uint_fd(int fd, unsigned int *val)
+{
+    char buf[32];
+    if (fd < 0 || lseek(fd, 0, SEEK_SET) < 0) return -1;
+    ssize_t n = read(fd, buf, sizeof(buf) - 1);
+    if (n <= 0) return -1;
+    buf[n] = '\0';
+    char *endptr;
+    *val = (unsigned int)strtoul(buf, &endptr, 10);
+    return (endptr != buf) ? 0 : -1;
+}
+
+static inline int read_int_fd(int fd, int *val)
+{
+    char buf[32];
+    if (fd < 0 || lseek(fd, 0, SEEK_SET) < 0) return -1;
+    ssize_t n = read(fd, buf, sizeof(buf) - 1);
+    if (n <= 0) return -1;
+    buf[n] = '\0';
+    char *endptr;
+    *val = (int)strtol(buf, &endptr, 10);
+    return (endptr != buf) ? 0 : -1;
+}
+
 void print_usage(char *progname)
 {
     fprintf(stderr, "\nUsage: %s [-m MODEL] [-r RES] [-d]\n\n", progname);
@@ -307,7 +331,8 @@ int main(int argc, char **argv)
 
     int c;
     const char memDevice[] = "/dev/mem";
-    FILE *fPtr, *fLen, *fTime;
+    FILE *fPtr, *fLen;
+    int fdTime = -1, fdLen = -1;
     int fMem;
     unsigned int ivAddr, ipAddr;
     unsigned int size;
@@ -524,27 +549,28 @@ int main(int argc, char **argv)
         }
     }
 
+    fdTime = open(timeStampFile, O_RDONLY);
+    fdLen = open(filLenFile, O_RDONLY);
+    if (fdTime < 0 || fdLen < 0) {
+        fprintf(stderr, "unable to open procfs timestamp/fill len files\n");
+        return -2;
+    }
+
     while (g_running) {
 
-        fTime = fopen(timeStampFile, "r");
-        if (fTime == NULL) {
+        if (read_uint_fd(fdTime, &time) < 0) {
             usleep(10000);
             continue;
         }
-        fscanf(fTime, "%u", &time);
-        fclose(fTime);
         oldTime = time;
 
         stream_started = 0;
 
         while(!stream_started && g_running) {
-            fTime = fopen(timeStampFile, "r");
-            if (fTime == NULL) {
+            if (read_uint_fd(fdTime, &time) < 0) {
                 usleep(10000);
                 continue;
             }
-            fscanf(fTime, "%u", &time);
-            fclose(fTime);
 
             if (time == oldTime) {
                 usleep(8000);
@@ -553,13 +579,10 @@ int main(int argc, char **argv)
 
             usleep(1000);
 
-            fLen = fopen(filLenFile, "r");
-            if (fLen == NULL) {
+            if (read_int_fd(fdLen, &len) < 0) {
                 usleep(10000);
                 continue;
             }
-            fscanf(fLen, "%d", &len);
-            fclose(fLen);
 
             memcpy(buffer, addr, len);
             oldTime = time;
@@ -628,14 +651,10 @@ int main(int argc, char **argv)
         }
 
         while(g_running) {
-            fTime = fopen(timeStampFile, "r");
-            if (fTime == NULL) {
+            if (read_uint_fd(fdTime, &time) < 0) {
                 usleep(10000);
                 continue;
             }
-            fscanf(fTime, "%u", &time);
-            fclose(fTime);
-//            if (debug) fprintf(stderr, "time: %u\n", time);
 
             if (time == oldTime) {
                 usleep(8000);
@@ -650,13 +669,10 @@ int main(int argc, char **argv)
 
             usleep(1000);
 
-            fLen = fopen(filLenFile, "r");
-            if (fLen == NULL) {
+            if (read_int_fd(fdLen, &len) < 0) {
                 usleep(10000);
                 continue;
             }
-            fscanf(fLen, "%d", &len);
-            fclose(fLen);
             if (debug) fprintf(stderr, "time: %u - len: %d\n", time, len);
             if (debug) fprintf(stderr, "milliseconds: %lld\n", current_timestamp());
 
@@ -744,6 +760,9 @@ int main(int argc, char **argv)
             unlink(FIFO_NAME_HIGH);
         }
     }
+
+    if (fdTime >= 0) close(fdTime);
+    if (fdLen >= 0) close(fdLen);
 
     munmap(addr, size);
 
