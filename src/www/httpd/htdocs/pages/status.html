@@ -1,121 +1,80 @@
 <div class="row">
-    <div class="twelf columns">
-        <h3 class="no-margin" id="header">Status</h3>
-        <hr class="tiny-margin"/>
-
-        <div class="row">
-            <p>Here you can see some info and stats about your camera.</p>
+    <div class="twelve columns">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h4 class="no-margin" style="font-weight:700;">Dashboard <span class="badge">NG Online</span></h4>
+            <div>
+                <a href="?page=snapshot" class="button btn-sm btn-primary">Live Snapshot</a>
+            </div>
         </div>
 
-        <h5 class="tiny-margin strong">Links</h5>
-        <hr class="no-margin"/>
+        <div class="card">
+            <div class="card-title">Stream & Media Links</div>
+            <table class="u-full-width table-compact">
+                <tbody>
+                <tr id="tr_high_res_stream" style="display: none;">
+                    <td style="width:160px;font-weight:600;">High Res RTSP</td>
+                    <td id="td_high_res_stream"></td>
+                </tr>
+                <tr id="tr_low_res_stream" style="display: none;">
+                    <td style="font-weight:600;">Low Res RTSP</td>
+                    <td id="td_low_res_stream"></td>
+                </tr>
+                <tr id="tr_audio_stream" style="display: none;">
+                    <td style="font-weight:600;">Audio Only</td>
+                    <td id="td_audio_stream"></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600;">High Snapshot</td>
+                    <td id="td_high_res_snapshot"></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600;">Low Snapshot</td>
+                    <td id="td_low_res_snapshot"></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600;">GitHub Project</td>
+                    <td><a href="https://github.com/Leottantuno/yi-hack-MStar-NG" target="_blank">yi-hack-MStar-NG</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
-        <table class="u-full-width padded-table">
-            <tbody>
-            <tr class="row" id="tr_high_res_stream" style="display: none;">
-                <td>High res stream</td>
-                <td id="td_high_res_stream"></td>
-            </tr>
-            <tr class="row" id="tr_low_res_stream" style="display: none;">
-                <td>Low res stream</td>
-                <td id="td_low_res_stream"></td>
-            </tr>
-            <tr class="row" id="tr_audio_stream" style="display: none;">
-                <td>Only audio stream</td>
-                <td id="td_audio_stream"></td>
-            </tr>
-            <tr class="row">
-                <td>High res snapshot</td>
-                <td id="td_high_res_snapshot"></td>
-            </tr>
-            <tr class="row">
-                <td>Low res snapshot</td>
-                <td id="td_low_res_snapshot"></td>
-            </tr>
-            <tr class="row">
-                <td>GitHub project</td>
-                <td><a href="https://github.com/Leottantuno/yi-hack-MStar-NG">yi-hack-MStar-NG</a></td>
-            </tr>
-        </table>
+        <div class="row">
+            <div class="six columns">
+                <div class="card">
+                    <div class="card-title">System Information</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                        <tr><td>Hostname</td><td id="hostname" class="strong"></td></tr>
+                        <tr><td>Firmware</td><td id="fw_version"></td></tr>
+                        <tr><td>Base Version</td><td id="home_version"></td></tr>
+                        <tr><td>Model Suffix</td><td id="model_suffix"></td></tr>
+                        <tr><td>Serial Number</td><td id="serial_number"></td></tr>
+                        <tr><td>Local Time</td><td id="local_time"></td></tr>
+                        <tr><td>Uptime</td><td id="uptime"></td></tr>
+                        <tr><td>Load Average</td><td id="load_avg"></td></tr>
+                        <tr><td>Memory</td><td id="memory"></td></tr>
+                        <tr><td>Free SD Space</td><td id="free_sd"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-        <h5 class="tiny-margin strong">System</h5>
-        <hr class="no-margin"/>
-
-        <table class="u-full-width padded-table">
-            <tbody>
-            <tr class="row">
-                <td>Hostname</td>
-                <td id="hostname"></td>
-            </tr>
-            <tr>
-                <td>Firmware Version</td>
-                <td id="fw_version"></td>
-            </tr>
-            <tr>
-                <td>Base Version</td>
-                <td id="home_version"></td>
-            </tr>
-            <tr>
-                <td>Model Suffix</td>
-                <td id="model_suffix"></td>
-            </tr>
-            <tr>
-                <td>Serial Number</td>
-                <td id="serial_number"></td>
-            </tr>
-            <tr>
-                <td>Local Time</td>
-                <td id="local_time"></td>
-            </tr>
-            <tr>
-                <td>Uptime</td>
-                <td id="uptime"></td>
-            </tr>
-            <tr>
-                <td>Load Average</td>
-                <td id="load_avg"></td>
-            </tr>
-            <tr>
-                <td>Free/Total Memory</td>
-                <td id="memory"></td>
-            </tr>
-            <tr>
-                <td>Free SD Space</td>
-                <td id="free_sd"></td>
-            </tr>
-            </tbody>
-        </table>
-
-        <h5 class="tiny-margin strong">Network</h5>
-        <hr class="no-margin"/>
-
-        <table class="u-full-width padded-table">
-            <tbody>
-            <tr>
-                <td class="">Address</td>
-                <td id="local_ip"></td>
-            </tr>
-            <tr>
-                <td>Netmask</td>
-                <td id="netmask"></td>
-            </tr>
-            <tr>
-                <td>Gateway</td>
-                <td id="gateway"></td>
-            </tr>
-            <tr>
-                <td>MAC</td>
-                <td id="mac_addr"></td>
-            </tr>
-            <tr>
-                <td>WiFi ESSID</td>
-                <td id="wlan_essid"></td>
-            </tr>
-            <tr>
-                <td>WiFi Strength</td>
-                <td><img id="wlan_strength" src="img/wlan_no_signal.png"><span id="wlan_strength_percent">No signal</span></td>
-            </tr>
-            </tbody>
-        </table>
+            <div class="six columns">
+                <div class="card">
+                    <div class="card-title">Network & Connectivity</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                        <tr><td>IP Address</td><td id="local_ip"></td></tr>
+                        <tr><td>Netmask</td><td id="netmask"></td></tr>
+                        <tr><td>Gateway</td><td id="gateway"></td></tr>
+                        <tr><td>MAC Address</td><td id="mac_addr"></td></tr>
+                        <tr><td>WiFi ESSID</td><td id="wlan_essid"></td></tr>
+                        <tr><td>WiFi Signal</td><td><img id="wlan_strength" src="img/wlan_no_signal.png" style="vertical-align:middle;margin-right:6px;"><span id="wlan_strength_percent">No signal</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
