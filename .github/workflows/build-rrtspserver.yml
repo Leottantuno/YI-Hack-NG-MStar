@@ -6,6 +6,9 @@ on:
     branches: [main, fix-rtsp-597]
     tags: ['v*']
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest

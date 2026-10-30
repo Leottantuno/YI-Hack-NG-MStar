@@ -29,7 +29,7 @@ docker run --rm --platform linux/amd64 \
   -v "$WORKSPACE:/workspace" \
   -w /workspace \
   borodiliz/yi-hack:latest \
-  -c "python /usr/local/bin/jefferson /workspace/.fw_build_${CAMERA_MODEL}/home_${CAMERA_MODEL} -d /workspace/.fw_build_${CAMERA_MODEL}/extracted"
+  -c "python /usr/local/bin/jefferson /workspace/.fw_build_${CAMERA_MODEL}/home_${CAMERA_MODEL} -d /workspace/.fw_build_${CAMERA_MODEL}/extracted && chmod -R 777 /workspace/.fw_build_${CAMERA_MODEL}"
 
 FS_DIR="$WORK_DIR/extracted/fs_1"
 if [ ! -d "$FS_DIR/yi-hack" ]; then
@@ -59,7 +59,7 @@ docker run --rm --platform linux/amd64 \
   -v "$WORKSPACE:/workspace" \
   -w /workspace \
   borodiliz/yi-hack:latest \
-  -c "mkfs.jffs2 -l -e 0x10000 -r /workspace/.fw_build_${CAMERA_MODEL}/extracted/fs_1 -o /workspace/.fw_build_${CAMERA_MODEL}/home_${CAMERA_MODEL}"
+  -c "mkfs.jffs2 -l -e 0x10000 -r /workspace/.fw_build_${CAMERA_MODEL}/extracted/fs_1 -o /workspace/.fw_build_${CAMERA_MODEL}/home_${CAMERA_MODEL} && chmod -R 777 /workspace/.fw_build_${CAMERA_MODEL}"
 
 echo "6. Creating release distribution archive..."
 OUT_TGZ="$WORKSPACE/out/${CAMERA_MODEL}_${OUT_VER}.tgz"
