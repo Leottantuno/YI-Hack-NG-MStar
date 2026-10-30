@@ -58,6 +58,15 @@ jobs:
               file _install/bin/rRTSPServer
             '
 
+      - name: Pack Full Release Firmware Images
+        run: |
+          chmod +x scripts/pack_release.sh
+          for MODEL in y203c h201c h305r h307 y23 y25 y30; do
+            echo "--- Packing $MODEL ---"
+            ./scripts/pack_release.sh "$MODEL" 0.6.0 0.5.8 || echo "Skipping $MODEL if base release not found"
+          done
+          ls -lh out/
+
       - name: Upload rRTSPServer
         uses: actions/upload-artifact@v4
         with:
@@ -71,3 +80,10 @@ jobs:
           name: h264grabber-armhf
           path: src/h264grabber/_install/bin/h264grabber
           if-no-files-found: error
+
+      - name: Upload Firmware Archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-packages-0.6.0
+          path: out/*.tgz
+          if-no-files-found: warn
