@@ -34,78 +34,44 @@ restart_rtsp()
     $START_STOP_SCRIPT rtsp start
 }
 
+is_running()
+{
+    ps | grep -v grep | grep -q "$1"
+}
+
 check_rtsp()
 {
-    if [[ $(get_camera_config SWITCH_ON) == "yes" ]] ; then
-        #  echo "$(date +'%Y-%m-%d %H:%M:%S') - Checking RTSP process..." >> $LOG_FILE
-        LISTEN=`netstat -an 2>&1 | grep ":$RTSP_PORT_NUMBER " | grep LISTEN | grep -c ^`
-        SOCKET=`netstat -an 2>&1 | grep ":$RTSP_PORT_NUMBER " | grep ESTABLISHED | grep -c ^`
-        CPU_1_L=`top -b -n 2 -d 1 | grep h264grabber_l | grep -v grep | tail -n 1 | awk '{print $8}'`
-        CPU_1_H=`top -b -n 2 -d 1 | grep h264grabber_h | grep -v grep | tail -n 1 | awk '{print $8}'`
-#        CPU_1=`top -b -n 2 -d 1 | grep h264grabber2 | grep -v grep | tail -n 1 | awk '{print $8}'`
-        CPU_2=`top -b -n 2 -d 1 | grep rRTSPServer | grep -v grep | tail -n 1 | awk '{print $8}'`
-
-        if [ $LISTEN -eq 0 ]; then
-            echo "$(date +'%Y-%m-%d %H:%M:%S') - Restarting rtsp process" >> $LOG_FILE
+    if [ "$(get_camera_config SWITCH_ON)" = "yes" ] ; then
+        LISTEN=$(netstat -an 2>&1 | grep ":$RTSP_PORT_NUMBER " | grep LISTEN | grep -c ^)
+        if [ "$LISTEN" -eq 0 ]; then
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - RTSP port $RTSP_PORT_NUMBER not listening, restarting..." >> $LOG_FILE
             killall -q rRTSPServer
             killall -q h264grabber h264grabber_l h264grabber_h
-#            killall -q h264grabber2
             sleep 1
             restart_rtsp
+            return
         fi
-        if [[ $(get_config RTSP_STREAM) == "low" ]] || [[ $(get_config RTSP_STREAM) == "both" ]]; then
-            if [ "$CPU_1_L" == "" ] || [ "$CPU_2" == "" ]; then
-                echo "$(date +'%Y-%m-%d %H:%M:%S') - No running processes for low res, restarting..." >> $LOG_FILE
-                killall -q rRTSPServer
-                killall -q h264grabber h264grabber_l h264grabber_h
-#                killall -q h264grabber2
-                sleep 1
-                restart_rtsp
-            fi
-            COUNTER_L=0
-        fi
-        if [[ $(get_config RTSP_STREAM) == "high" ]] || [[ $(get_config RTSP_STREAM) == "both" ]]; then
-            if [ "$CPU_1_H" == "" ] || [ "$CPU_2" == "" ]; then
-                echo "$(date +'%Y-%m-%d %H:%M:%S') - No running processes for high res, restarting..." >> $LOG_FILE
-                killall -q rRTSPServer
-                killall -q h264grabber h264grabber_l h264grabber_h
-#                killall -q h264grabber2
-                sleep 1
-                restart_rtsp
-            fi
-            COUNTER_H=0
-        fi
-        if [ $SOCKET -gt 0 ]; then
-            if [ "$CPU_1_L" == "0.0" ] && [ "$CPU_2" == "0.0" ]; then
-                COUNTER_L=$((COUNTER_L+1))
-                echo "$(date +'%Y-%m-%d %H:%M:%S') - Detected possible locked process for low res ($COUNTER_L)" >> $LOG_FILE
-                if [ $COUNTER_L -ge $COUNTER_LIMIT ]; then
-                    echo "$(date +'%Y-%m-%d %H:%M:%S') - Restarting processes" >> $LOG_FILE
-                    killall -q rRTSPServer
-                    killall -q h264grabber h264grabber_l h264grabber_h
-#                    killall -q h264grabber2
-                    sleep 1
-                    restart_rtsp
-                    COUNTER_L=0
-                fi
-            else
-                COUNTER_L=0
-            fi
 
-            if [ "$CPU_1_H" == "0.0" ] && [ "$CPU_2" == "0.0" ]; then
-                COUNTER_H=$((COUNTER_H+1))
-                echo "$(date +'%Y-%m-%d %H:%M:%S') - Detected possible locked process for high res ($COUNTER_H)" >> $LOG_FILE
-                if [ $COUNTER_H -ge $COUNTER_LIMIT ]; then
-                    echo "$(date +'%Y-%m-%d %H:%M:%S') - Restarting processes" >> $LOG_FILE
-                    killall -q rRTSPServer
-                    killall -q h264grabber h264grabber_l h264grabber_h
-#                    killall -q h264grabber2
-                    sleep 1
-                    restart_rtsp
-                    COUNTER_H=0
-                fi
-            else
-                COUNTER_H=0
+        STREAM_CONF=$(get_config RTSP_STREAM)
+        if [ "$STREAM_CONF" = "low" ] || [ "$STREAM_CONF" = "both" ]; then
+            if ! is_running "h264grabber_l" || ! is_running "rRTSPServer"; then
+                echo "$(date +'%Y-%m-%d %H:%M:%S') - Missing processes for low res, restarting..." >> $LOG_FILE
+                killall -q rRTSPServer
+                killall -q h264grabber h264grabber_l h264grabber_h
+                sleep 1
+                restart_rtsp
+                return
+            fi
+        fi
+
+        if [ "$STREAM_CONF" = "high" ] || [ "$STREAM_CONF" = "both" ]; then
+            if ! is_running "h264grabber_h" || ! is_running "rRTSPServer"; then
+                echo "$(date +'%Y-%m-%d %H:%M:%S') - Missing processes for high res, restarting..." >> $LOG_FILE
+                killall -q rRTSPServer
+                killall -q h264grabber h264grabber_l h264grabber_h
+                sleep 1
+                restart_rtsp
+                return
             fi
         fi
     else
@@ -115,42 +81,38 @@ check_rtsp()
 
 check_rtsp_alt()
 {
-    if [[ $(get_camera_config SWITCH_ON) == "yes" ]] ; then
-        #  echo "$(date +'%Y-%m-%d %H:%M:%S') - Checking RTSP process..." >> $LOG_FILE
-        LISTEN=`netstat -an 2>&1 | grep ":$RTSP_PORT_NUMBER " | grep LISTEN | grep -c ^`
-        CPU_1_L=`top -b -n 2 -d 1 | grep h264grabber_l | grep -v grep | tail -n 1 | awk '{print $8}'`
-        CPU_1_H=`top -b -n 2 -d 1 | grep h264grabber_h | grep -v grep | tail -n 1 | awk '{print $8}'`
-        CPU_2=`top -b -n 2 -d 1 | grep rtsp_server_yi | grep -v grep | tail -n 1 | awk '{print $8}'`
-
-        if [ $LISTEN -eq 0 ]; then
-            echo "$(date +'%Y-%m-%d %H:%M:%S') - Restarting rtsp process" >> $LOG_FILE
+    if [ "$(get_camera_config SWITCH_ON)" = "yes" ] ; then
+        LISTEN=$(netstat -an 2>&1 | grep ":$RTSP_PORT_NUMBER " | grep LISTEN | grep -c ^)
+        if [ "$LISTEN" -eq 0 ]; then
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - RTSP alt port not listening, restarting..." >> $LOG_FILE
             killall -q rtsp_server_yi
-            killall -q h264grabber_l
-            killall -q h264grabber_h
+            killall -q h264grabber h264grabber_l h264grabber_h
             sleep 1
             restart_rtsp
+            return
         fi
-        if [[ $(get_config RTSP_STREAM) == "low" ]] || [[ $(get_config RTSP_STREAM) == "both" ]]; then
-            if [ "$CPU_1_L" == "" ] || [ "$CPU_2" == "" ]; then
-                echo "$(date +'%Y-%m-%d %H:%M:%S') - No running processes for low res, restarting..." >> $LOG_FILE
+
+        STREAM_CONF=$(get_config RTSP_STREAM)
+        if [ "$STREAM_CONF" = "low" ] || [ "$STREAM_CONF" = "both" ]; then
+            if ! is_running "h264grabber_l" || ! is_running "rtsp_server_yi"; then
+                echo "$(date +'%Y-%m-%d %H:%M:%S') - Missing processes for low res (alt), restarting..." >> $LOG_FILE
                 killall -q rtsp_server_yi
-                killall -q h264grabber_l
-                killall -q h264grabber_h
+                killall -q h264grabber h264grabber_l h264grabber_h
                 sleep 1
                 restart_rtsp
+                return
             fi
-            COUNTER_L=0
         fi
-        if [[ $(get_config RTSP_STREAM) == "high" ]] || [[ $(get_config RTSP_STREAM) == "both" ]]; then
-            if [ "$CPU_1_H" == "" ] || [ "$CPU_2" == "" ]; then
-                echo "$(date +'%Y-%m-%d %H:%M:%S') - No running processes for high res, restarting..." >> $LOG_FILE
+
+        if [ "$STREAM_CONF" = "high" ] || [ "$STREAM_CONF" = "both" ]; then
+            if ! is_running "h264grabber_h" || ! is_running "rtsp_server_yi"; then
+                echo "$(date +'%Y-%m-%d %H:%M:%S') - Missing processes for high res (alt), restarting..." >> $LOG_FILE
                 killall -q rtsp_server_yi
-                killall -q h264grabber_l
-                killall -q h264grabber_h
+                killall -q h264grabber h264grabber_l h264grabber_h
                 sleep 1
                 restart_rtsp
+                return
             fi
-            COUNTER_H=0
         fi
     else
         echo "Camera is swiched off no rtsp restart needed" >> $LOG_FILE
@@ -159,42 +121,38 @@ check_rtsp_alt()
 
 check_rtsp_go2rtc()
 {
-    if [[ $(get_camera_config SWITCH_ON) == "yes" ]] ; then
-        #  echo "$(date +'%Y-%m-%d %H:%M:%S') - Checking RTSP process..." >> $LOG_FILE
-        LISTEN=`netstat -an 2>&1 | grep ":$RTSP_PORT_NUMBER " | grep LISTEN | grep -c ^`
-        CPU_1_L=`top -b -n 2 -d 1 | grep h264grabber_l | grep -v grep | tail -n 1 | awk '{print $8}'`
-        CPU_1_H=`top -b -n 2 -d 1 | grep h264grabber_h | grep -v grep | tail -n 1 | awk '{print $8}'`
-        CPU_2=`top -b -n 2 -d 1 | grep go2rtc | grep -v grep | tail -n 1 | awk '{print $8}'`
-
-        if [ $LISTEN -eq 0 ]; then
-            echo "$(date +'%Y-%m-%d %H:%M:%S') - Restarting rtsp process" >> $LOG_FILE
+    if [ "$(get_camera_config SWITCH_ON)" = "yes" ] ; then
+        LISTEN=$(netstat -an 2>&1 | grep ":$RTSP_PORT_NUMBER " | grep LISTEN | grep -c ^)
+        if [ "$LISTEN" -eq 0 ]; then
+            echo "$(date +'%Y-%m-%d %H:%M:%S') - go2rtc port not listening, restarting..." >> $LOG_FILE
             killall -q go2rtc
-            killall -q h264grabber_l
-            killall -q h264grabber_h
+            killall -q h264grabber h264grabber_l h264grabber_h
             sleep 1
             restart_rtsp
+            return
         fi
-        if [[ $(get_config RTSP_STREAM) == "low" ]] || [[ $(get_config RTSP_STREAM) == "both" ]]; then
-            if [ "$CPU_1_L" == "" ] || [ "$CPU_2" == "" ]; then
-                echo "$(date +'%Y-%m-%d %H:%M:%S') - No running processes for low res, restarting..." >> $LOG_FILE
+
+        STREAM_CONF=$(get_config RTSP_STREAM)
+        if [ "$STREAM_CONF" = "low" ] || [ "$STREAM_CONF" = "both" ]; then
+            if ! is_running "h264grabber_l" || ! is_running "go2rtc"; then
+                echo "$(date +'%Y-%m-%d %H:%M:%S') - Missing processes for low res (go2rtc), restarting..." >> $LOG_FILE
                 killall -q go2rtc
-                killall -q h264grabber_l
-                killall -q h264grabber_h
+                killall -q h264grabber h264grabber_l h264grabber_h
                 sleep 1
                 restart_rtsp
+                return
             fi
-            COUNTER_L=0
         fi
-        if [[ $(get_config RTSP_STREAM) == "high" ]] || [[ $(get_config RTSP_STREAM) == "both" ]]; then
-            if [ "$CPU_1_H" == "" ] || [ "$CPU_2" == "" ]; then
-                echo "$(date +'%Y-%m-%d %H:%M:%S') - No running processes for high res, restarting..." >> $LOG_FILE
+
+        if [ "$STREAM_CONF" = "high" ] || [ "$STREAM_CONF" = "both" ]; then
+            if ! is_running "h264grabber_h" || ! is_running "go2rtc"; then
+                echo "$(date +'%Y-%m-%d %H:%M:%S') - Missing processes for high res (go2rtc), restarting..." >> $LOG_FILE
                 killall -q go2rtc
-                killall -q h264grabber_l
-                killall -q h264grabber_h
+                killall -q h264grabber h264grabber_l h264grabber_h
                 sleep 1
                 restart_rtsp
+                return
             fi
-            COUNTER_H=0
         fi
     else
         echo "Camera is swiched off no rtsp restart needed" >> $LOG_FILE
@@ -267,21 +225,21 @@ echo "$(date +'%Y-%m-%d %H:%M:%S') - Starting RTSP watchdog..." >> $LOG_FILE
 
 while true
 do
-    if [[ "$RTSP_ALT" == "standard" ]] ; then
-        check_rtsp
-    elif [[ "$RTSP_ALT" == "alternative" ]] ; then
+    if [ "$RTSP_ALT" = "alternative" ]; then
         check_rtsp_alt
-    else
+    elif [ "$RTSP_ALT" = "go2rtc" ]; then
         check_rtsp_go2rtc
+    else
+        check_rtsp
     fi
     check_rmm
     check_mqtt
     check_wifi
 
-    echo 1500 > /sys/class/net/eth0/mtu
-    echo 1500 > /sys/class/net/wlan0/mtu
+    echo 1500 > /sys/class/net/eth0/mtu 2>/dev/null
+    echo 1500 > /sys/class/net/wlan0/mtu 2>/dev/null
 
-    if [ $COUNTER_H -eq 0 ] && [ $COUNTER_L -eq 0 ]; then
-        sleep $INTERVAL
+    if [ "$COUNTER_H" -eq 0 ] && [ "$COUNTER_L" -eq 0 ]; then
+        sleep "$INTERVAL"
     fi
 done

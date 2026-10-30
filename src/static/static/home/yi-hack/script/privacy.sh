@@ -16,11 +16,11 @@ start_rtsp()
 
 stop_rtsp()
 {
-    killall wd.sh
-    killall rtsp_server_yi
-    killall rRTSPServer
-    killall h264grabber
-    killall h264grabber2
+    killall -q wd.sh 2>/dev/null
+    killall -q rtsp_server_yi 2>/dev/null
+    killall -q rRTSPServer 2>/dev/null
+    killall -q go2rtc 2>/dev/null
+    killall -q h264grabber h264grabber_l h264grabber_h h264grabber2 2>/dev/null
 }
 
 ps_program()
