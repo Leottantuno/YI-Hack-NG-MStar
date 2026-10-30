@@ -73,7 +73,7 @@ elif [ "$VAL" == "upgrade" ] ; then
             exit
         fi
 
-        wget https://github.com/roleoroleo/yi-hack-MStar/releases/download/$LATEST_FW/${MODEL_SUFFIX}_${LATEST_FW}.tgz
+        wget https://github.com/Leottantuno/yi-hack-MStar-NG/releases/download/$LATEST_FW/${MODEL_SUFFIX}_${LATEST_FW}.tgz
         if [ ! -f ${MODEL_SUFFIX}_${LATEST_FW}.tgz ]; then
             printf "Content-type: text/html\r\n\r\n"
             printf "Unable to download firmware file."

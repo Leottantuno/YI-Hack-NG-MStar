@@ -86,12 +86,12 @@ MANUFACTURER=$(get_mqtt_advertise_config HOMEASSISTANT_MANUFACTURER)
 MODEL=$(get_mqtt_advertise_config HOMEASSISTANT_MODEL)
 SW_VERSION=$(cat $YI_HACK_PREFIX/version)
 DEVICE_DETAILS="{\"identifiers\":[\"$IDENTIFIERS\"],\"connections\":[[\"mac\",\"${LOCAL_MAC}\"]],\"manufacturer\":\"$MANUFACTURER\",\"model\":\"$MODEL\",\"name\":\"$NAME\",\"sw_version\":\"$SW_VERSION\",\"configuration_url\":\"http://$LOCAL_IP:$HTTPD_PORT\"}"
-if [ "$HOMEASSISTANT_RETAIN" == "1" ]; then
+if [ "$HOMEASSISTANT_RETAIN" = "1" ]; then
     HA_RETAIN="-r"
 else
     HA_RETAIN=""
 fi
-if [ "$HOMEASSISTANT_QOS" == "0" ] || [ "$HOMEASSISTANT_QOS" == "1" ] || [ "$HOMEASSISTANT_QOS" == "2" ]; then
+if [ "$HOMEASSISTANT_QOS" = "0" ] || [ "$HOMEASSISTANT_QOS" = "1" ] || [ "$HOMEASSISTANT_QOS" = "2" ]; then
     HA_QOS="-q $HOMEASSISTANT_QOS"
 else
     HA_QOS=""
@@ -150,14 +150,14 @@ hass_setup_switch(){
   CONTENT="$CONTENT}"
 }
 
-if [ "$MQTT_ADV_INFO_GLOBAL_ENABLE" == "yes" ]; then
+if [ "$MQTT_ADV_INFO_GLOBAL_ENABLE" = "yes" ]; then
     #Don't know why... ..Home Assistant don't allow retain for Sensor and Binary Sensor
-    ## if [ "$MQTT_ADV_INFO_GLOBAL_RETAIN" == "1" ]; then
+    ## if [ "$MQTT_ADV_INFO_GLOBAL_RETAIN" = "1" ]; then
     ##    RETAIN='"retain":true, '
     ## else
         RETAIN=""
     ## fi
-    if [ "$MQTT_ADV_INFO_GLOBAL_QOS" == "1" ] || [ "$MQTT_ADV_INFO_GLOBAL_QOS" == "2" ]; then
+    if [ "$MQTT_ADV_INFO_GLOBAL_QOS" = "1" ] || [ "$MQTT_ADV_INFO_GLOBAL_QOS" = "2" ]; then
         QOS='"qos":'$MQTT_ADV_INFO_GLOBAL_QOS', '
     else
         QOS=""
@@ -198,14 +198,14 @@ else
         $YI_HACK_PREFIX/bin/mosquitto_pub $HA_QOS $HA_RETAIN -h $HOST -t $TOPIC -n
     done
 fi
-if [ "$MQTT_ADV_TELEMETRY_ENABLE" == "yes" ]; then
+if [ "$MQTT_ADV_TELEMETRY_ENABLE" = "yes" ]; then
     #Don't know why... ..Home Assistant don't allow retain for Sensor and Binary Sensor
-    ## if [ "$MQTT_ADV_TELEMETRY_RETAIN" == "1" ]; then
+    ## if [ "$MQTT_ADV_TELEMETRY_RETAIN" = "1" ]; then
     ##    RETAIN='"retain":true, '
     ## else
         RETAIN=""
     ## fi
-    if [ "$MQTT_ADV_TELEMETRY_QOS" == "1" ] || [ "$MQTT_ADV_TELEMETRY_QOS" == "2" ]; then
+    if [ "$MQTT_ADV_TELEMETRY_QOS" = "1" ] || [ "$MQTT_ADV_TELEMETRY_QOS" = "2" ]; then
         QOS='"qos":'$MQTT_ADV_TELEMETRY_QOS', '
     else
         QOS=""
@@ -242,7 +242,7 @@ fi
 hass_topic "binary_sensor" "motion_detection" "Movement"
 MQTT_RETAIN_MOTION=$(get_config MQTT_RETAIN_MOTION)
 #Don't know why... ..Home Assistant don't allow retain for Sensor and Binary Sensor
-# if [ "$MQTT_RETAIN_MOTION" == "1" ]; then
+# if [ "$MQTT_RETAIN_MOTION" = "1" ]; then
 #    RETAIN='"retain":true, '
 # else
     RETAIN=""
@@ -253,7 +253,7 @@ mqtt_publish
 hass_topic "binary_sensor" "baby_crying" "Baby crying detect"
 MQTT_RETAIN_MOTION=$(get_config MQTT_RETAIN_MOTION)
 #Don't know why... ..Home Assistant don't allow retain for Sensor and Binary Sensor
-# if [ "$MQTT_RETAIN_MOTION" == "1" ]; then
+# if [ "$MQTT_RETAIN_MOTION" = "1" ]; then
 #    RETAIN='"retain":true, '
 # else
     RETAIN=""
@@ -264,7 +264,7 @@ mqtt_publish
 hass_topic "binary_sensor" "sound_detection" "Sound Detection"
 MQTT_RETAIN_SOUND_DETECTION=$(get_config MQTT_RETAIN_SOUND_DETECTION)
 #Don't know why... ..Home Assistant don't allow retain for Sensor and Binary Sensor
-# if [ "$MQTT_RETAIN_SOUND_DETECTION" == "1" ]; then
+# if [ "$MQTT_RETAIN_SOUND_DETECTION" = "1" ]; then
 #    RETAIN='"retain":true, '
 # else
     RETAIN=""
@@ -275,20 +275,20 @@ mqtt_publish
 hass_topic "camera" "motion_detection_image" "Motion Detection Image"
 MQTT_RETAIN_MOTION_IMAGE=$(get_config MQTT_RETAIN_MOTION_IMAGE)
 #Don't know why... ..Home Assistant don't allow retain for Sensor and Binary Sensor
-# if [ "$MQTT_RETAIN_MOTION_IMAGE" == "1" ]; then
+# if [ "$MQTT_RETAIN_MOTION_IMAGE" = "1" ]; then
 #    RETAIN='"retain":true, '
 # else
     RETAIN=""
 # fi
 CONTENT='{"availability_topic":"'$MQTT_PREFIX'/'$TOPIC_BIRTH_WILL'","payload_available":"'$BIRTH_MSG'","payload_not_available":"'$WILL_MSG'","device":'$DEVICE_DETAILS', "qos": "'$MQTT_QOS'", '$RETAIN' "topic":"'$MQTT_PREFIX'/'$TOPIC_MOTION_IMAGE'","name":"'$UNIQUE_NAME'","unique_id":"'$UNIQUE_ID'", "platform": "mqtt"}'
 mqtt_publish
-if [ "$MQTT_ADV_CAMERA_SETTING_ENABLE" == "yes" ]; then
-    if [ "$MQTT_ADV_CAMERA_SETTING_RETAIN" == "1" ]; then
+if [ "$MQTT_ADV_CAMERA_SETTING_ENABLE" = "yes" ]; then
+    if [ "$MQTT_ADV_CAMERA_SETTING_RETAIN" = "1" ]; then
         RETAIN='"retain":true, '
     else
         RETAIN=""
     fi
-    if [ "$MQTT_ADV_CAMERA_SETTING_QOS" == "1" ] || [ "$MQTT_ADV_CAMERA_SETTING_QOS" == "2" ]; then
+    if [ "$MQTT_ADV_CAMERA_SETTING_QOS" = "1" ] || [ "$MQTT_ADV_CAMERA_SETTING_QOS" = "2" ]; then
         QOS='"qos":'$MQTT_ADV_CAMERA_SETTING_QOS', '
     else
         QOS=""

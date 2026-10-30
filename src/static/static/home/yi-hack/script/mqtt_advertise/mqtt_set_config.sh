@@ -51,7 +51,7 @@ $YI_HACK_PREFIX/bin/mosquitto_sub -v -h $HOST -t $TOPIC | while read -r SUBSCRIB
         ;;
         save_video_on_motion)
             IPC_OPT="-v"
-            if [ "$VAL" == "no" ] || [ "$VAL" == "off" ] ; then
+            if [ "$VAL" = "no" ] || [ "$VAL" = "off" ] ; then
                 VAL="always"
             else
                 VAL="detect"
@@ -76,9 +76,9 @@ $YI_HACK_PREFIX/bin/mosquitto_sub -v -h $HOST -t $TOPIC | while read -r SUBSCRIB
             IPC_OPT="-p"
         ;;
     esac
-    if [ "$VAL" == "no" ] || [ "$VAL" == "off" ] ; then
+    if [ "$VAL" = "no" ] || [ "$VAL" = "off" ] ; then
         VAL="off"
-    elif [ "$VAL" == "yes" ] || [ "$VAL" == "on" ] ; then
+    elif [ "$VAL" = "yes" ] || [ "$VAL" = "on" ] ; then
         VAL="on"
     fi
     ipc_cmd $IPC_OPT $VAL &

@@ -1,24 +1,24 @@
-# yi-hack-mstar-ng
+# yi-hack-MStar-NG
 
 <p align="center">
   <img height="180" src="https://user-images.githubusercontent.com/39277388/85948999-59034780-b954-11ea-8fb3-c4c88727cf5b.png" alt="yi-hack logo">
 </p>
 
 <p align="center">
-  <a href="https://github.com/Leottantuno/yi-hack-MStar/actions/workflows/build-rrtspserver.yml">
-    <img src="https://github.com/Leottantuno/yi-hack-MStar/actions/workflows/build-rrtspserver.yml/badge.svg" alt="Build Status">
+  <a href="https://github.com/Leottantuno/yi-hack-MStar-NG/actions/workflows/build-rrtspserver.yml">
+    <img src="https://github.com/Leottantuno/yi-hack-MStar-NG/actions/workflows/build-rrtspserver.yml/badge.svg" alt="Build Status">
   </a>
-  <a href="https://github.com/Leottantuno/yi-hack-MStar/releases">
-    <img src="https://img.shields.io/github/v/release/Leottantuno/yi-hack-MStar?include_prereleases&label=Release" alt="Latest Release">
+  <a href="https://github.com/Leottantuno/yi-hack-MStar-NG/releases">
+    <img src="https://img.shields.io/github/v/release/Leottantuno/yi-hack-MStar-NG?include_prereleases&label=Release" alt="Latest Release">
   </a>
   <a href="https://www.gnu.org/licenses/gpl-3.0">
     <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="GPLv3 License">
   </a>
 </p>
 
-**yi-hack-mstar-ng** (Next Generation) is an open-source custom firmware distribution for Yi security cameras based on the **MStar Infinity** SoC platform. 
+**yi-hack-MStar-NG** (Next Generation) is an open-source custom firmware distribution for Yi security cameras based on the **MStar Infinity** SoC platform. 
 
-It modernizes and stabilizes the legacy *yi-hack-MStar* project, introducing non-blocking RTSP streaming pipelines, deadlock prevention between video capture and streaming daemons, resilient watchdog process management, automated GitHub Actions container builds, and streamlined deployment tools.
+It modernizes and stabilizes the legacy *yi-hack-MStar* project, introducing non-blocking RTSP streaming pipelines, deadlock prevention between video capture and streaming daemons, resilient watchdog process management, automated GitHub Actions container builds, and streamlined deployment tools. Starting from version **0.1.0**, it operates as an independent continuation with dedicated updates and releases.
 
 ---
 
@@ -145,7 +145,7 @@ This firmware supports cameras running the **MStar Infinity** chipset family.
 
 If your camera is already running `yi-hack-MStar` (v0.5.8 or similar), you **do not** need to re-flash your SD card. You can apply the new non-blocking RTSP pipeline and watchdog fixes directly:
 
-1. Download the latest compiled binaries (`rRTSPServer`, `h264grabber`) from [GitHub Actions Artifacts or Releases](https://github.com/Leottantuno/yi-hack-MStar/actions).
+1. Download the latest compiled binaries (`rRTSPServer`, `h264grabber`) from [GitHub Actions Artifacts or Releases](https://github.com/Leottantuno/yi-hack-MStar-NG/actions).
 2. Transfer the patched files to the camera:
    - Copy `rRTSPServer` and `h264grabber` to `/home/yi-hack/bin/` (or `/tmp/sd/yi-hack/bin/`).
    - Ensure execution permissions: `chmod +x /home/yi-hack/bin/rRTSPServer /home/yi-hack/bin/h264grabber`.
@@ -242,7 +242,7 @@ Alternatively, push changes to the repository and download the artifacts automat
 
 ## Heritage, Credits & License
 
-**yi-hack-mstar-ng** is built upon the ingenuity and dedication of the open-source reverse engineering community:
+**yi-hack-MStar-NG** is built upon the ingenuity and dedication of the open-source reverse engineering community:
 
 - **[@roleoroleo](https://github.com/roleoroleo)**: Original creator and maintainer of [yi-hack-MStar](https://github.com/roleoroleo/yi-hack-MStar), [yi-hack-Allwinner](https://github.com/roleoroleo/yi-hack-Allwinner), and Home Assistant integration.
 - **[@TheCrypt0](https://github.com/TheCrypt0)**: Author of [yi-hack-v4](https://github.com/TheCrypt0/yi-hack-v4), pioneering custom firmware on Yi devices.

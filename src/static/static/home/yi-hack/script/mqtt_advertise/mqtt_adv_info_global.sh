@@ -21,7 +21,7 @@ HOSTNAME=$(hostname)
 FW_VERSION=$(cat $YI_HACK_PREFIX/version)
 HOME_VERSION=$(cat /home/app/.appver)
 MODEL_SUFFIX=$(cat $YI_HACK_PREFIX/model_suffix)
-if [[ $MODEL_SUFFIX == "y23" ]]; then
+if [[ $MODEL_SUFFIX = "y23" ]]; then
     SERIAL_NUMBER=$(dd status=none bs=1 count=20 skip=592 if=/tmp/mmap.info | tr '\0' '0' | cut -c1-20)
 else
     SERIAL_NUMBER=$(dd status=none bs=1 count=20 skip=661 if=/tmp/mmap.info | tr '\0' '0' | cut -c1-20)
@@ -53,12 +53,12 @@ MQTT_PREFIX=$(get_config MQTT_PREFIX)
 MQTT_ADV_INFO_GLOBAL_TOPIC=$(get_mqtt_advertise_config MQTT_ADV_INFO_GLOBAL_TOPIC)
 MQTT_ADV_INFO_GLOBAL_RETAIN=$(get_mqtt_advertise_config MQTT_ADV_INFO_GLOBAL_RETAIN)
 MQTT_ADV_INFO_GLOBAL_QOS=$(get_mqtt_advertise_config MQTT_ADV_INFO_GLOBAL_QOS)
-if [ "$MQTT_ADV_INFO_GLOBAL_RETAIN" == "1" ]; then
+if [ "$MQTT_ADV_INFO_GLOBAL_RETAIN" = "1" ]; then
     RETAIN="-r"
 else
     RETAIN=""
 fi
-if [ "$MQTT_ADV_INFO_GLOBAL_QOS" == "0" ] || [ "$MQTT_ADV_INFO_GLOBAL_QOS" == "1" ] || [ "$MQTT_ADV_INFO_GLOBAL_QOS" == "2" ]; then
+if [ "$MQTT_ADV_INFO_GLOBAL_QOS" = "0" ] || [ "$MQTT_ADV_INFO_GLOBAL_QOS" = "1" ] || [ "$MQTT_ADV_INFO_GLOBAL_QOS" = "2" ]; then
     QOS="-q $MQTT_ADV_INFO_GLOBAL_QOS"
 else
     QOS=""

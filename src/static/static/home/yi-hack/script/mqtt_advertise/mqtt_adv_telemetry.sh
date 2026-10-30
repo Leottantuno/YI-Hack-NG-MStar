@@ -45,12 +45,12 @@ MQTT_PREFIX=$(get_config MQTT_PREFIX)
 MQTT_ADV_TELEMETRY_TOPIC=$(get_mqtt_advertise_config MQTT_ADV_TELEMETRY_TOPIC)
 MQTT_ADV_TELEMETRY_RETAIN=$(get_mqtt_advertise_config MQTT_ADV_TELEMETRY_RETAIN)
 MQTT_ADV_TELEMETRY_QOS=$(get_mqtt_advertise_config MQTT_ADV_TELEMETRY_QOS)
-if [ "$MQTT_ADV_TELEMETRY_RETAIN" == "1" ]; then
+if [ "$MQTT_ADV_TELEMETRY_RETAIN" = "1" ]; then
     RETAIN="-r"
 else
     RETAIN=""
 fi
-if [ "$MQTT_ADV_TELEMETRY_QOS" == "0" ] || [ "$MQTT_ADV_TELEMETRY_QOS" == "1" ] || [ "$MQTT_ADV_TELEMETRY_QOS" == "2" ]; then
+if [ "$MQTT_ADV_TELEMETRY_QOS" = "0" ] || [ "$MQTT_ADV_TELEMETRY_QOS" = "1" ] || [ "$MQTT_ADV_TELEMETRY_QOS" = "2" ]; then
     QOS="-q $MQTT_ADV_TELEMETRY_QOS"
 else
     QOS=""
