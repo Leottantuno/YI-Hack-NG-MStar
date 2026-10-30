@@ -1,0 +1,83 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header">Camera Settings</h3>
+                <span id="loading-status" class="loading-text"></span>
+            </div>
+            <div class="page-header-actions">
+                <span class="save-text"></span>
+                <input class="button-primary btn-save" type="button" value="Save Settings" />
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">General Video & Controls</div>
+            <div class="configs-switch" style="border:0;padding:0;box-shadow:none;margin:0;">
+                <table class="u-full-width config-table">
+                    <tbody>
+                    <tr>
+                        <td>Camera Power</td>
+                        <td>
+                            <label class="switch small">
+                                <input type="checkbox" data-key="SWITCH_ON"/>
+                                <span class="slider round"></span>
+                                <span class="switch-text"></span>
+                            </label>
+                            <span class="switch-description">Enable or disable video capture and streaming.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Motion Recording</td>
+                        <td>
+                            <label class="switch small">
+                                <input type="checkbox" data-key="SAVE_VIDEO_ON_MOTION"/>
+                                <span class="slider round"></span>
+                                <span class="switch-text"></span>
+                            </label>
+                            <span class="switch-description">Save video clips only when motion is detected (otherwise continuous).</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Status LED</td>
+                        <td>
+                            <label class="switch small">
+                                <input type="checkbox" data-key="LED"/>
+                                <span class="slider round"></span>
+                                <span class="switch-text"></span>
+                            </label>
+                            <span class="switch-description">Turn the front status LED on or off.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>IR Night Vision</td>
+                        <td>
+                            <label class="switch small">
+                                <input type="checkbox" data-key="IR"/>
+                                <span class="slider round"></span>
+                                <span class="switch-text"></span>
+                            </label>
+                            <span class="switch-description">Enable or disable infrared night vision LEDs.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Rotate Image 180°</td>
+                        <td>
+                            <label class="switch small">
+                                <input type="checkbox" data-key="ROTATE"/>
+                                <span class="slider round"></span>
+                                <span class="switch-text"></span>
+                            </label>
+                            <span class="switch-description">Flip video vertically for ceiling mounting.</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="text-align:right;margin-top:16px;">
+                <span id="save-status" class="save-text loading-text" style="margin-right:12px;"></span>
+                <input class="button-primary btn-save" type="button" id="button-save" value="Save Settings"/>
+            </div>
+        </div>
+    </div>
+</div>

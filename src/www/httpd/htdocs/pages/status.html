@@ -1,0 +1,99 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header" style="font-weight:700;">Dashboard <span class="badge" style="vertical-align:middle;margin-left:6px;">NG Online</span></h3>
+            </div>
+            <div class="page-header-actions">
+                <a href="?page=snapshot" class="button btn-sm btn-primary">Live Snapshot</a>
+            </div>
+        </div>
+
+        <!-- Primary Cards: System Information & Network Connectivity (Above the Fold) -->
+        <div class="row">
+            <div class="six columns">
+                <div class="card">
+                    <div class="card-title">System Information</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                        <tr><td>Hostname</td><td id="hostname" class="strong"></td></tr>
+                        <tr><td>Firmware</td><td id="fw_version"></td></tr>
+                        <tr><td>Base Version</td><td id="home_version"></td></tr>
+                        <tr><td>Model Suffix</td><td id="model_suffix"></td></tr>
+                        <tr><td>Serial Number</td><td id="serial_number"></td></tr>
+                        <tr><td>Local Time</td><td id="local_time"></td></tr>
+                        <tr><td>Uptime</td><td id="uptime"></td></tr>
+                        <tr>
+                            <td>
+                                CPU Load (Queue)
+                                <span class="switch-description">Active tasks on single core (1.0 = 100%)</span>
+                            </td>
+                            <td id="load_avg"></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Memory (RAM)
+                                <span class="switch-description">Free / Total</span>
+                            </td>
+                            <td id="memory"></td>
+                        </tr>
+                        <tr><td>Free SD Space</td><td id="free_sd"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="six columns">
+                <div class="card">
+                    <div class="card-title">Network &amp; Connectivity</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                        <tr><td>IP Address</td><td id="local_ip"></td></tr>
+                        <tr><td>Netmask</td><td id="netmask"></td></tr>
+                        <tr><td>Gateway</td><td id="gateway"></td></tr>
+                        <tr><td>MAC Address</td><td id="mac_addr"></td></tr>
+                        <tr><td>WiFi ESSID</td><td id="wlan_essid"></td></tr>
+                        <tr><td>WiFi Signal</td><td><img id="wlan_strength" src="img/wlan_no_signal.png" style="vertical-align:middle;margin-right:6px;"><span id="wlan_strength_percent">No signal</span></td></tr>
+                        <tr>
+                            <td>GitHub Project</td>
+                            <td><a href="https://github.com/Leottantuno/YI-Hack-NG-MStar" target="_blank" style="color:var(--primary);font-weight:600;">YI-Hack-NG-MStar</a></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary Card: Stream & Media Links (Below the Fold) -->
+        <div class="card">
+            <div class="card-title">Stream &amp; Media Links</div>
+            <p style="margin-bottom:12px;color:var(--text-muted);font-size:1.3rem;">
+                Direct RTSP video URLs and snapshot image endpoints for third-party NVRs, Home Assistant, and media players (VLC, ffplay).
+            </p>
+            <table class="u-full-width table-compact">
+                <tbody>
+                <tr id="tr_high_res_stream" style="display: none;">
+                    <td style="width:20%;font-weight:600;">High Res RTSP</td>
+                    <td id="td_high_res_stream"></td>
+                </tr>
+                <tr id="tr_low_res_stream" style="display: none;">
+                    <td style="font-weight:600;">Low Res RTSP</td>
+                    <td id="td_low_res_stream"></td>
+                </tr>
+                <tr id="tr_audio_stream" style="display: none;">
+                    <td style="font-weight:600;">Audio Only</td>
+                    <td id="td_audio_stream"></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600;">High Snapshot</td>
+                    <td id="td_high_res_snapshot"></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600;">Low Snapshot</td>
+                    <td id="td_low_res_snapshot"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

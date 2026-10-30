@@ -1,0 +1,20 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+source config.dropbear
+
+cd "${BUILD_FOLDER}"
+
+make clean
+make -j$(nproc) \
+    PROGRAMS="dropbear dropbearkey dropbearconvert dbclient scp" \
+    MULTI=1 \
+    || exit 1
+
+mkdir -p ../_install
+
+cp ./dropbearmulti ../_install/
+
+#make install || exit 1

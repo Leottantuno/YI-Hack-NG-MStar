@@ -1,0 +1,126 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header">ONVIF Configuration</h3>
+                <span id="loading-status" class="loading-text"></span>
+            </div>
+            <div class="page-header-actions">
+                <span class="save-text"></span>
+                <input class="button-primary btn-save" type="button" value="Save Configuration" />
+            </div>
+        </div>
+
+        <div class="card configs-switch">
+            <div class="card-title">ONVIF Profile &amp; Protocol Settings</div>
+            <p style="margin-bottom:12px;color:var(--text-muted);font-size:1.3rem;">
+                Configure ONVIF profile streaming, discovery, audio backchannel and NVR interoperability.
+            </p>
+            <table class="u-full-width table-compact">
+                <tbody>
+                    <tr>
+                        <td style="width:45%;">
+                            WS-Discovery
+                            <span class="switch-description">Enable ONVIF automatic network discovery daemon.</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="ONVIF_WSDD" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Active Profiles
+                            <span class="switch-description">Expose high resolution, low resolution, or both streams.</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:100%;">
+                                <select data-key="ONVIF_PROFILE" id="ONVIF_PROFILE">
+                                    <option value="high">High Resolution</option>
+                                    <option value="low">Low Resolution</option>
+                                    <option value="both">Both (Dual Stream)</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Snapshot Watermark
+                            <span class="switch-description">Embed timestamp watermark directly onto ONVIF snapshots.</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="ONVIF_WM_SNAPSHOT" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Audio Decoder (Backchannel)
+                            <span class="switch-description">Two-way audio talkback codec used by ONVIF clients.</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:100%;">
+                                <select data-key="ONVIF_AUDIO_BC" id="ONVIF_AUDIO_BC">
+                                    <option value="NONE">None</option>
+                                    <option value="G711">G.711 (PCMU/A)</option>
+                                    <option value="AAC">AAC</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Media2 Support
+                            <span class="switch-description">Enable ONVIF Media Service 2.0 configuration and streaming.</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="ONVIF_ENABLE_MEDIA2" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Fault Response
+                            <span class="switch-description">Reply with standard SOAP fault if a request is unrecognized.</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="ONVIF_FAULT_IF_UNKNOWN" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Synology Surveillance Station
+                            <span class="switch-description">Apply protocol quirks for enhanced Synology NVR compatibility.</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="ONVIF_SYNOLOGY_NVR" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Action / Save Bar -->
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="font-size:1.25rem;color:var(--text-muted);">
+                <span class="strong">Note:</span> Configuration changes take effect after camera reboot.
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="save-text" id="save-status"></div>
+                <input class="button-primary btn-save" type="button" id="button-save" value="Save Configuration" />
+            </div>
+        </div>
+    </div>
+</div>

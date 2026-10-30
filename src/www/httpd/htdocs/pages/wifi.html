@@ -1,0 +1,52 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header">WiFi Configuration</h3>
+                <span id="loading-wifi-status" class="loading-text"></span>
+            </div>
+            <div class="page-header-actions">
+                <span class="save-text"></span>
+                <input class="button-primary btn-save" type="button" value="Save WiFi Settings" />
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Network Credentials</div>
+            <p style="font-size:1.25rem;color:var(--text-muted);margin-bottom:12px;">
+                Configure the wireless network SSID and WPA2 passphrase.
+            </p>
+            <div class="configs-switch" style="border:0;padding:0;box-shadow:none;margin:0;">
+                <table class="u-full-width config-table">
+                    <tbody>
+                    <tr>
+                        <td>Available Networks</td>
+                        <td>
+                            <div id="select-container" class="standard-select"></div>
+                            <div id="input-container" style="margin-top:6px;">
+                                <input class="u-full-width" type="text" placeholder="Manual SSID" data-key="WIFI_ESSID_MANUAL" id="WIFI_ESSID_MANUAL"/>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>WiFi Password</td>
+                        <td>
+                            <input class="u-full-width" type="password" placeholder="Passphrase" data-key="WIFI_PASSWORD" id="WIFI_PASSWORD"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Confirm Password</td>
+                        <td>
+                            <input class="u-full-width" type="password" placeholder="Confirm Passphrase" data-key="WIFI_PASSWORD2" id="WIFI_PASSWORD2"/>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="text-align:right;margin-top:16px;">
+                <span id="save-wifi-status" class="save-text loading-text" style="margin-right:12px;"></span>
+                <input class="button-primary btn-save" type="button" id="button-save-wifi" value="Save WiFi Settings"/>
+            </div>
+        </div>
+    </div>
+</div>

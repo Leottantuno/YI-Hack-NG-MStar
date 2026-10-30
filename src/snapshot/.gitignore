@@ -1,0 +1,5 @@
+# Ignore the install dir
+_install/
+snapshot/SDK
+snapshot/ffmpeg-*
+snapshot/libjpeg-turbo-*

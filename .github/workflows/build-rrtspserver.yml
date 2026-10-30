@@ -1,0 +1,100 @@
+name: Build and Release YI-Hack-NG-MStar
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, fix-rtsp-597]
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prefetch build dependencies on host (avoids EOL container networking/DNS issues)
+        run: |
+          set -e
+          cd src/rRTSPServer
+          curl -fsSL -o v2.0.1.tar.gz https://github.com/mstorsjo/fdk-aac/archive/v2.0.1.tar.gz
+          curl -fsSL -o live.2023.01.19.tar.gz https://download.videolan.org/pub/contrib/live555/live.2023.01.19.tar.gz
+          ls -lh v2.0.1.tar.gz live.2023.01.19.tar.gz
+          cd ../..
+
+          mkdir -p .debs
+          curl -fsSL -o .debs/libltdl7.deb http://old-releases.ubuntu.com/ubuntu/pool/main/libt/libtool/libltdl7_2.4.6-11_i386.deb
+          curl -fsSL -o .debs/libltdl-dev.deb http://old-releases.ubuntu.com/ubuntu/pool/main/libt/libtool/libltdl-dev_2.4.6-11_i386.deb
+          curl -fsSL -o .debs/libtool.deb http://old-releases.ubuntu.com/ubuntu/pool/main/libt/libtool/libtool_2.4.6-11_all.deb
+
+      - name: Build binaries in yi-hack toolchain image
+        run: |
+          docker run --rm --platform linux/amd64 \
+            --entrypoint bash \
+            -v "$PWD:/yi-hack-src" \
+            -w /yi-hack-src \
+            borodiliz/yi-hack:latest \
+            -lc '
+              set -e
+              export PATH="/opt/yi/arm-linux-gnueabihf-4.8.3-201404/bin:$PATH"
+              export DEBIAN_FRONTEND=noninteractive
+              dpkg -i .debs/*.deb
+              arm-linux-gnueabihf-gcc --version
+
+              echo "=== Building h264grabber ==="
+              cd /yi-hack-src/src/h264grabber
+              chmod +x compile.h264grabber cleanup.h264grabber || true
+              ./compile.h264grabber
+              file _install/bin/h264grabber
+
+              echo "=== Building rRTSPServer ==="
+              cd /yi-hack-src/src/rRTSPServer
+              chmod +x init.rRTSPServer compile.rRTSPServer install.rRTSPServer || true
+              ./init.rRTSPServer
+              ./compile.rRTSPServer
+              file _install/bin/rRTSPServer
+            '
+
+      - name: Pack Full Release Firmware Images
+        run: |
+          chmod +x scripts/pack_release.sh
+          VER="$(cat VERSION)"
+          echo "Packaging firmware for version: $VER"
+          for MODEL in y203c h201c h305r h307 y23 y25 y30; do
+            echo "--- Packing $MODEL ---"
+            ./scripts/pack_release.sh "$MODEL" "$VER" 0.5.8 || echo "Skipping $MODEL if base release not found"
+          done
+          ls -lh out/
+
+      - name: Upload rRTSPServer
+        uses: actions/upload-artifact@v4
+        with:
+          name: rRTSPServer-armhf
+          path: src/rRTSPServer/_install/bin/rRTSPServer
+          if-no-files-found: error
+
+      - name: Upload h264grabber
+        uses: actions/upload-artifact@v4
+        with:
+          name: h264grabber-armhf
+          path: src/h264grabber/_install/bin/h264grabber
+          if-no-files-found: error
+
+      - name: Upload Firmware Archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-packages
+          path: out/*.tgz
+          if-no-files-found: warn
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/*.tgz
+            src/rRTSPServer/_install/bin/rRTSPServer
+            src/h264grabber/_install/bin/h264grabber
+          generate_release_notes: true
+          draft: false
+          prerelease: false

@@ -1,0 +1,58 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header">Proxy Configuration</h3>
+                <span id="loading-proxy-status" class="loading-text"></span>
+            </div>
+            <div class="page-header-actions">
+                <span class="save-text"></span>
+                <input class="button-primary btn-save" type="button" value="Save &amp; Test" />
+            </div>
+        </div>
+
+        <div class="card configs-switch">
+            <div class="card-title">Proxychains Settings</div>
+            <p style="margin-bottom:14px;color:var(--text-muted);font-size:1.3rem;">
+                Route outbound connections through SOCKS4/5 or HTTP proxies. Separate multiple proxy entries with semicolons.
+            </p>
+            <table class="u-full-width table-compact">
+                <tbody>
+                    <tr>
+                        <td style="width:25%;">
+                            Server List
+                            <span class="switch-description">e.g. socks4 1.2.3.4 1080;socks5 5.6.7.8 1080</span>
+                        </td>
+                        <td>
+                            <input class="u-full-width" type="text" placeholder="socks4 1.2.3.4 1080" data-key="PROXYCHAINS_SERVERS" id="PROXYCHAINS_SERVERS" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="row" style="margin-top:16px;">
+                <div class="six columns">
+                    <label class="strong" style="font-size:1.3rem;">Direct Output (No Proxy)</label>
+                    <textarea class="u-full-width" rows="10" data-key="TEST_WITHOUT_PROXY" id="TEST_WITHOUT_PROXY" style="font-family:monospace;font-size:1.2rem;min-height:160px;resize:vertical;" readonly></textarea>
+                    <div class="save-text" id="test0-proxy-status" style="margin-top:4px;"></div>
+                </div>
+                <div class="six columns">
+                    <label class="strong" style="font-size:1.3rem;">Chained Output (Via Proxy)</label>
+                    <textarea class="u-full-width" rows="10" data-key="TEST_WITH_PROXY" id="TEST_WITH_PROXY" style="font-family:monospace;font-size:1.2rem;min-height:160px;resize:vertical;" readonly></textarea>
+                    <div class="save-text" id="test1-proxy-status" style="margin-top:4px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action / Save Bar -->
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="font-size:1.25rem;color:var(--text-muted);">
+                <span class="strong">Note:</span> Configuration changes take effect after camera reboot.
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="save-text" id="save-proxy-status"></div>
+                <input class="button-primary btn-save" type="button" id="button-save-proxy" value="Save &amp; Test Configuration" />
+            </div>
+        </div>
+    </div>
+</div>

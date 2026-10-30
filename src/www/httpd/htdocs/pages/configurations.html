@@ -1,0 +1,489 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header">System Configurations</h3>
+                <span id="loading-status" class="loading-text"></span>
+            </div>
+            <div class="page-header-actions">
+                <span class="save-text"></span>
+                <input class="button-primary btn-save" type="button" value="Save Configuration" />
+            </div>
+        </div>
+
+        <p style="margin-bottom:16px;color:var(--text-muted);font-size:1.3rem;">
+            Configure network identification, core streaming daemons, cloud privacy, local snapshot options, system services and security credentials.
+        </p>
+
+        <!-- General & Streaming Card -->
+        <div class="card configs-switch">
+            <div class="card-title">General &amp; Streaming Settings</div>
+            <table class="u-full-width table-compact">
+                <tbody>
+                    <tr>
+                        <td style="width:35%;">
+                            Hostname
+                            <span class="switch-description">Camera network hostname. Leave blank for auto.</span>
+                        </td>
+                        <td>
+                            <input class="u-full-width" type="text" placeholder="yi-cam-living" data-key="HOSTNAME" id="HOSTNAME" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Timezone
+                            <span class="switch-description">POSIX timezone string (<a href="?page=tz" style="color:var(--primary);font-weight:600;">Timezone list</a>).</span>
+                        </td>
+                        <td>
+                            <input class="u-full-width" type="text" placeholder="CET-1CEST,M3.5.0,M10.5.0/3" data-key="TIMEZONE" id="TIMEZONE" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Disable Cloud
+                            <span class="switch-description">Completely cut off Yi App cloud telemetry and services (pure private local mode).</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="DISABLE_CLOUD" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Local SD Recording Without Cloud
+                            <span class="switch-description">Preserve 24/7 video recording on microSD even with Cloud disabled.</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="REC_WITHOUT_CLOUD" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            RTSP Server
+                            <span class="switch-description">Enable RTSP live video/audio streaming server.</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="RTSP" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            RTSP Server Core
+                            <span class="switch-description">Underlying streaming daemon engine.</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:100%;">
+                                <select data-key="RTSP_ALT" id="RTSP_ALT">
+                                    <option value="standard">Standard (Live555 engine)</option>
+                                    <option value="alternative">Alternative (h264 standalone engine)</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            RTSP Stream Resolution
+                            <span class="switch-description">Resolution exposed to RTSP clients.</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:100%;">
+                                <select data-key="RTSP_STREAM" id="RTSP_STREAM">
+                                    <option value="high">High Resolution (1080p / Main Stream)</option>
+                                    <option value="low">Low Resolution (360p / Sub Stream)</option>
+                                    <option value="both">Both (Dual Streams: /ch0_0.h264 &amp; /ch0_1.h264)</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            RTSP Audio Codec
+                            <span class="switch-description">Audio stream format for RTSP clients.</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:100%;">
+                                <select data-key="RTSP_AUDIO" id="RTSP_AUDIO">
+                                    <option value="no">Disabled (Video only, saves CPU)</option>
+                                    <option value="pcm">PCM (Uncompressed)</option>
+                                    <option value="alaw">PCMA (A-law)</option>
+                                    <option value="ulaw">PCMU (&mu;-law)</option>
+                                    <option value="aac">AAC (Modern low-bandwidth)</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Audio Noise Reduction
+                            <span class="switch-description">Digital filter level for PCM/A-law/&mu;-law (0 to disable).</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:140px;">
+                                <select data-key="RTSP_AUDIO_NR_LEVEL" id="RTSP_AUDIO_NR_LEVEL">
+                                    <option value="0">0 (Off - Least CPU)</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                                    <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                                    <option value="10">10 (Moderate)</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option>
+                                    <option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option>
+                                    <option value="20">20 (High)</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option>
+                                    <option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option>
+                                    <option value="30">30 (Maximum)</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            ONVIF Protocol
+                            <span class="switch-description">Expose ONVIF profiles for NVR/VMS integration (<a href="?page=configurations_onvif" style="color:var(--primary);font-weight:600;">Detailed ONVIF settings</a>).</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="ONVIF" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Time OSD
+                            <span class="switch-description">Render timestamp overlay in upper left video corner.</span>
+                        </td>
+                        <td class="align-right">
+                            <label class="switch small">
+                                <input type="checkbox" data-key="TIME_OSD" />
+                                <span class="slider round"></span>
+                            </label>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row">
+            <!-- Snapshots & Time-lapse -->
+            <div class="six columns">
+                <div class="card configs-switch">
+                    <div class="card-title">Snapshots &amp; Time-lapse</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td style="width:60%;">
+                                    Snapshot HTTP Service
+                                    <span class="switch-description">Enable /cgi-bin/snapshot.sh endpoint.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="SNAPSHOT" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Snapshot For Recorded Video
+                                    <span class="switch-description">Generate thumbnails for recordings (CPU expensive).</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="SNAPSHOT_VIDEO" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Force Low Res Snapshot
+                                    <span class="switch-description">Capture 360p snapshot to minimize RAM usage.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="SNAPSHOT_LOW" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Time-lapse Feature
+                                    <span class="switch-description">Periodic frame capture (<a href="?page=timelapse" style="color:var(--primary);font-weight:600;">View clips</a>).</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="TIMELAPSE" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Time-lapse Interval (min)
+                                    <span class="switch-description">Minutes: 1-6, 10, 15, 20, 30, 60, 120, 1440.</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="60" data-key="TIMELAPSE_DT" id="TIMELAPSE_DT" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Video Compilation Cron
+                                    <span class="switch-description">Crontab expression (e.g. 0 0 * * *).</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="0 0 * * *" data-key="TIMELAPSE_VDT" id="TIMELAPSE_VDT" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    FTP Push Snapshots
+                                    <span class="switch-description">Push time-lapse frames to remote FTP and delete locally.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="TIMELAPSE_FTP" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Overwrite Remote Frame
+                                    <span class="switch-description">Use identical filename when uploading via FTP.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="TIMELAPSE_FTP_SAME_NAME" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Network Services (Advanced) -->
+            <div class="six columns">
+                <div class="card configs-switch">
+                    <div class="card-title">Network &amp; System Daemons</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td style="width:60%;">
+                                    SSH Server (Dropbear)
+                                    <span class="switch-description">Secure remote shell access on port 22.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="SSHD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    FTP Server (Pure-FTPd)
+                                    <span class="switch-description">High-performance FTP access on port 21.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="FTPD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Legacy BusyBox FTP
+                                    <span class="switch-description">Fallback lightweight BusyBox FTP daemon.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="BUSYBOX_FTPD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Telnet Server
+                                    <span class="switch-description" style="color:#ef4444;">Insecure unencrypted shell access (not recommended).</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="TELNETD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    NTP Daemon (Time Sync)
+                                    <span class="switch-description">Network time sync daemon (required if Cloud is disabled).</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="NTPD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>NTP Server Address</td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="pool.ntp.org" data-key="NTP_SERVER" id="NTP_SERVER" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Web Server (HTTPD)
+                                    <span class="switch-description" style="color:#ef4444;">Warning: Disabling will block this WebUI.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="HTTPD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    mDNS Daemon (Avahi)
+                                    <span class="switch-description">ZeroConf / .local domain resolution on LAN.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="MDNSD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Proxychains-NG
+                                    <span class="switch-description">Bypass region restrictions via SOCKS/HTTP proxy.</span>
+                                </td>
+                                <td class="align-right" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+                                    <input class="button btn-sm" type="button" id="button-proxy-edit" value="Edit" onclick="window.location.href='?page=proxy'" />
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="PROXYCHAINSNG" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Ports & Authentication -->
+            <div class="six columns">
+                <div class="card configs-switch">
+                    <div class="card-title">Ports &amp; Access Credentials</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td style="width:40%;">
+                                    RTSP Port
+                                    <span class="switch-description">Default: 554</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="554" data-key="RTSP_PORT" id="RTSP_PORT" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    HTTPD Port
+                                    <span class="switch-description">Default: 80</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="80" data-key="HTTPD_PORT" id="HTTPD_PORT" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Streaming / Web User
+                                    <span class="switch-description">Username for RTSP, ONVIF &amp; WebUI.</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="Leave empty for none" data-key="USERNAME" id="USERNAME" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Streaming / Web Password
+                                    <span class="switch-description">Password for RTSP, ONVIF &amp; WebUI.</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="password" placeholder="••••••••" data-key="PASSWORD" id="PASSWORD" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Root Shell Password
+                                    <span class="switch-description">System password for SSH, Telnet &amp; FTP.</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="password" placeholder="••••••••" data-key="SSH_PASSWORD" id="SSH_PASSWORD" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Expert Settings -->
+            <div class="six columns">
+                <div class="card configs-switch">
+                    <div class="card-title">Expert Settings</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <label class="strong" style="font-size:1.3rem;">Crontab Scheduled Tasks</label>
+                                    <span class="switch-description" style="font-family:monospace;font-size:1.15rem;display:block;margin-bottom:6px;">
+                                        # * * * * * &lt;command to execute&gt;<br/>
+                                        # m h dom mon dow
+                                    </span>
+                                    <textarea class="u-full-width" rows="4" data-key="CRONTAB" id="CRONTAB" placeholder="* * * * * /home/yi-hack/bin/myscript.sh" style="font-family:monospace;font-size:1.2rem;min-height:90px;resize:vertical;"></textarea>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:65%;">
+                                    Debug Logging
+                                    <span class="switch-description">Writes verbose boot diagnostic trace to /tmp/sd/hack_debug.log.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="DEBUG_LOG" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action / Save Bar -->
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="font-size:1.25rem;color:var(--text-muted);">
+                <span class="strong">Note:</span> Configuration changes take effect after camera reboot.
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="save-text" id="save-status"></div>
+                <input class="button-primary btn-save" type="button" id="button-save" value="Save Configuration" />
+            </div>
+        </div>
+    </div>
+</div>

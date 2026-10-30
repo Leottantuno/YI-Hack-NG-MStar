@@ -1,0 +1,52 @@
+<div class="row">
+    <div class="twelve columns">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h4 class="no-margin">PTZ Controls</h4>
+        </div>
+
+        <div id="ptz_unavailable" class="card" style="display:none;text-align:center;color:var(--text-muted);">
+            <p class="no-margin">PTZ (Pan/Tilt/Zoom) hardware functions are not available for this camera model.</p>
+        </div>
+
+        <div id="ptz_main">
+            <div class="row">
+                <div class="six columns">
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;">Live View</div>
+                        <img id="imgSnap" src="img/loading.gif" style="max-width:100%;height:auto;border-radius:6px;" />
+                    </div>
+                </div>
+
+                <div class="six columns">
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;">Direction Pad</div>
+                        <table class="ptz-table">
+                            <tbody>
+                            <tr>
+                                <td><input type="image" id="img-ul" src="img/arrow-up-right-bold-box-outline.png" /></td>
+                                <td><input type="image" id="img-au" src="img/arrow-up-bold-box-outline.png" /></td>
+                                <td><input type="image" id="img-ur" src="img/arrow-up-right-bold-box-outline.png" /></td>
+                            </tr>
+                            <tr>
+                                <td><input type="image" id="img-al" src="img/arrow-up-bold-box-outline.png" /></td>
+                                <td><input type="image" id="img-home" src="img/home.png" /></td>
+                                <td><input type="image" id="img-ar" src="img/arrow-up-bold-box-outline.png" /></td>
+                            </tr>
+                            <tr>
+                                <td><input type="image" id="img-dl" src="img/arrow-up-right-bold-box-outline.png" /></td>
+                                <td><input type="image" id="img-ad" src="img/arrow-up-bold-box-outline.png" /></td>
+                                <td><input type="image" id="img-dr" src="img/arrow-up-right-bold-box-outline.png" /></td>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="card-title" style="margin-top:14px;justify-content:center;">Go to Preset</div>
+                        <div style="display:inline-block;width:100%;max-width:200px;">
+                            <div id="select-goto-container" class="standard-select"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

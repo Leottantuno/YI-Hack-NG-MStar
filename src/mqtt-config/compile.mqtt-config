@@ -1,0 +1,40 @@
+#!/bin/bash
+
+export CROSSPATH=/opt/yi/arm-linux-gnueabihf-4.8.3-201404/bin
+export PATH=${PATH}:${CROSSPATH}
+
+export TARGET=arm-linux-gnueabihf
+export CROSS=arm-linux-gnueabihf
+export BUILD=x86_64-pc-linux-gnu
+
+export CROSSPREFIX=${CROSS}-
+
+export STRIP=${CROSSPREFIX}strip
+export CXX=${CROSSPREFIX}g++
+export CC=${CROSSPREFIX}gcc
+export LD=${CROSSPREFIX}ld
+export AS=${CROSSPREFIX}as
+export AR=${CROSSPREFIX}ar
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+CPWD=$(pwd)
+MOSQUITTO_DIR="../mosquitto/_install"
+WOLFSSL_DIR="../libwolf_01_ssl/_install"
+WOLFMQTT_DIR="../libwolf_02_mqtt/_install"
+
+cd mqtt-config
+
+export USE_MOSQUITTO=1
+export CFLAGS="-I${CPWD}/${WOLFSSL_DIR}/include -I${CPWD}/${WOLFMQTT_DIR}/include -I${CPWD}/${MOSQUITTO_DIR}/../mosquitto/lib"
+export LIBS="-L${CPWD}/${WOLFSSL_DIR}/lib -L${CPWD}/${WOLFMQTT_DIR}/lib -L${CPWD}/${MOSQUITTO_DIR}/lib"
+
+make clean
+make -j $(nproc) || exit 1
+
+mkdir -p ../_install/bin
+
+cp ./mqtt-config ../_install/bin
+
+arm-linux-gnueabihf-strip ../_install/bin/*

@@ -1,0 +1,116 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="row" style="margin-bottom:12px;">
+            <h3 class="no-margin" id="header">Speaker Controls</h3>
+        </div>
+
+        <div class="row">
+            <!-- Text-to-Speech Card -->
+            <div class="six columns">
+                <div class="card">
+                    <div class="card-title">Text-to-Speech (TTS)</div>
+                    <p style="margin-bottom:12px;color:var(--text-muted);font-size:1.3rem;">
+                        Synthesize and play speech directly through the camera speaker.
+                    </p>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <label class="strong" style="font-size:1.3rem;">Message Text</label>
+                                    <input class="u-full-width" type="text" name="ttsinput" id="ttsinput" placeholder="Type message to speak..." />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:50%;">
+                                    <label class="strong" style="font-size:1.3rem;">Language</label>
+                                    <div class="standard-select" style="max-width:100%;">
+                                        <select name="ttslang" id="ttslang">
+                                            <option value="en-US" selected>English (US)</option>
+                                            <option value="en-GB">English (GB)</option>
+                                            <option value="de-DE">Deutsch</option>
+                                            <option value="es-ES">Español</option>
+                                            <option value="fr-FR">Français</option>
+                                            <option value="it-IT">Italiano</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td>
+                                    <label class="strong" style="font-size:1.3rem;">Volume Gain</label>
+                                    <div class="standard-select" style="max-width:100%;">
+                                        <select name="ttsvol" id="ttsvol">
+                                            <option value="12">+12 dB</option>
+                                            <option value="10">+10 dB</option>
+                                            <option value="8">+8 dB</option>
+                                            <option value="6">+6 dB</option>
+                                            <option value="4">+4 dB</option>
+                                            <option value="2">+2 dB</option>
+                                            <option value="0" selected>0 dB</option>
+                                            <option value="-2">-2 dB</option>
+                                            <option value="-4">-4 dB</option>
+                                            <option value="-6">-6 dB</option>
+                                            <option value="-8">-8 dB</option>
+                                            <option value="-10">-10 dB</option>
+                                            <option value="-12">-12 dB</option>
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" class="align-right" style="padding-top:14px;">
+                                    <input class="button-primary" type="button" id="button-speak" value="Play Voice" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Audio File Playback Card -->
+            <div class="six columns">
+                <div class="card">
+                    <div class="card-title">Audio File Playback</div>
+                    <p style="margin-bottom:12px;color:var(--text-muted);font-size:1.3rem;">
+                        Play custom WAV audio clips (Format: S16LE, 16 KHz, 16-bit mono).
+                    </p>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <label class="strong" style="font-size:1.3rem;">Select WAV File</label>
+                                    <input class="u-full-width" type="file" name="wavfile" id="wavfile" accept=".wav" style="height:auto;padding:6px;" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <label class="strong" style="font-size:1.3rem;">Volume Gain</label>
+                                    <div class="standard-select" style="max-width:100%;">
+                                        <select name="wavvol" id="wavvol">
+                                            <option value="12">+12 dB</option>
+                                            <option value="10">+10 dB</option>
+                                            <option value="8">+8 dB</option>
+                                            <option value="6">+6 dB</option>
+                                            <option value="4">+4 dB</option>
+                                            <option value="2">+2 dB</option>
+                                            <option value="0" selected>0 dB</option>
+                                            <option value="-2">-2 dB</option>
+                                            <option value="-4">-4 dB</option>
+                                            <option value="-6">-6 dB</option>
+                                            <option value="-8">-8 dB</option>
+                                            <option value="-10">-10 dB</option>
+                                            <option value="-12">-12 dB</option>
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" class="align-right" style="padding-top:14px;">
+                                    <input class="button-primary" type="button" id="button-speaker" value="Play WAV Audio" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

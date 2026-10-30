@@ -1,0 +1,142 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header">Events</h3>
+                <span id="loading-status" class="loading-text"></span>
+            </div>
+            <div class="page-header-actions">
+                <span class="save-text"></span>
+                <input class="button-primary btn-save" type="button" value="Save Settings" />
+            </div>
+        </div>
+
+        <!-- Recorded Events Table Card -->
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-title">Recorded Events</div>
+            <p style="margin-bottom:12px;color:var(--text-muted);font-size:1.3rem;">
+                Select a recording date/time folder to view detected motion clips.
+            </p>
+            <div id="table-container" style="overflow-x:auto;"></div>
+        </div>
+
+        <div class="row">
+            <!-- SD Cleaning & Time Setting -->
+            <div class="six columns">
+                <div class="card configs-switch">
+                    <div class="card-title">Storage &amp; Events Time</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td style="width:50%;">
+                                    SD Free Space (%)
+                                    <span class="switch-description">Target free space percentage (0 to disable).</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="0" data-key="FREE_SPACE" id="FREE_SPACE" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Events Timestamp
+                                    <span class="switch-description">Directory timestamp convention in /tmp/sd/records.</span>
+                                </td>
+                                <td>
+                                    <div class="standard-select" style="max-width:100%;">
+                                        <select data-key="EVENTS_TIME" id="EVENTS_TIME">
+                                            <option value="autodetect">Autodetect</option>
+                                            <option value="local">Local time</option>
+                                            <option value="gmt">GMT</option>
+                                        </select>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- FTP Upload Settings -->
+            <div class="six columns">
+                <div class="card configs-switch">
+                    <div class="card-title">FTP Backup</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td style="width:55%;">
+                                    FTP Upload
+                                    <span class="switch-description">Upload clips to remote FTP service.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="FTP_UPLOAD" id="FTP_UPLOAD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Delete After Upload
+                                    <span class="switch-description">Free SD card space after successful upload.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="FTP_FILE_DELETE_AFTER_UPLOAD" id="FTP_FILE_DELETE_AFTER_UPLOAD" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Preserve Tree
+                                    <span class="switch-description">Mirror camera directory structure on FTP.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" data-key="FTP_DIR_TREE" id="FTP_DIR_TREE" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>FTP Host</td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="ftp.example.com" data-key="FTP_HOST" id="FTP_HOST" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Remote Directory</td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="/yi-events" data-key="FTP_DIR" id="FTP_DIR" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Username</td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="user" data-key="FTP_USERNAME" id="FTP_USERNAME" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Password</td>
+                                <td>
+                                    <input class="u-full-width" type="password" placeholder="••••••••" data-key="FTP_PASSWORD" id="FTP_PASSWORD" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action / Save Bar -->
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="font-size:1.25rem;color:var(--text-muted);">
+                <span class="strong">Note:</span> Configuration changes take effect after camera reboot.
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="save-text" id="save-status"></div>
+                <input class="button-primary btn-save" type="button" id="button-save" value="Save Settings" />
+            </div>
+        </div>
+    </div>
+</div>

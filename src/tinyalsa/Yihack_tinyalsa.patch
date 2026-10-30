@@ -1,0 +1,467 @@
+diff -Naur tinyalsa-1.0.0.ori/include/tinyalsa/pcm.h tinyalsa-1.0.0/include/tinyalsa/pcm.h
+--- tinyalsa-1.0.0.ori/include/tinyalsa/pcm.h	2016-10-02 04:37:39.000000000 +0200
++++ tinyalsa-1.0.0/include/tinyalsa/pcm.h	2021-06-17 15:04:50.813600400 +0200
+@@ -218,6 +218,7 @@
+                      unsigned int flags, struct pcm_config *config);
+ int pcm_close(struct pcm *pcm);
+ int pcm_is_ready(struct pcm *pcm);
++int pcm_is_xrun(struct pcm *pcm);
+ 
+ struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
+                                   unsigned int flags);
+@@ -262,6 +263,11 @@
+ 
+ long pcm_get_delay(struct pcm *pcm);
+ 
++int pcm_create_snoop_fifo(struct pcm *pcm);
++int pcm_create_snoop_fifo_in(struct pcm *pcm);
++int pcm_read_snoop_fifo(struct pcm *pcm, void *data, unsigned int bytes);
++int pcm_write_snoop_fifo(struct pcm *pcm, void *data, unsigned int bytes);
++int pcm_write_snoop_fifo_wavhdr(struct pcm *pcm);
+ #if defined(__cplusplus)
+ }  /* extern "C" */
+ #endif
+diff -Naur tinyalsa-1.0.0.ori/include/tinyalsa/wave.h tinyalsa-1.0.0/include/tinyalsa/wave.h
+--- tinyalsa-1.0.0.ori/include/tinyalsa/wave.h	1970-01-01 01:00:00.000000000 +0100
++++ tinyalsa-1.0.0/include/tinyalsa/wave.h	2021-06-17 15:04:50.813600400 +0200
+@@ -0,0 +1,31 @@
++#ifndef WAVE_H
++#define WAVE_H
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <stdint.h>
++
++#define ID_RIFF 0x46464952
++#define ID_WAVE 0x45564157
++#define ID_FMT  0x20746d66
++#define ID_DATA 0x61746164
++
++#define FORMAT_PCM 1
++
++struct wav_header {
++    uint32_t riff_id;
++    uint32_t riff_sz;
++    uint32_t riff_fmt;
++    uint32_t fmt_id;
++    uint32_t fmt_sz;
++    uint16_t audio_format;
++    uint16_t num_channels;
++    uint32_t sample_rate;
++    uint32_t byte_rate;
++    uint16_t block_align;
++    uint16_t bits_per_sample;
++    uint32_t data_id;
++    uint32_t data_sz;
++};
++
++#endif
+diff -Naur tinyalsa-1.0.0.ori/Makefile tinyalsa-1.0.0/Makefile
+--- tinyalsa-1.0.0.ori/Makefile	2016-10-02 04:37:39.000000000 +0200
++++ tinyalsa-1.0.0/Makefile	2021-06-17 15:04:50.813600400 +0200
+@@ -10,13 +10,13 @@
+ all:
+ 	$(MAKE) -C src
+ 	$(MAKE) -C utils
+-	$(MAKE) -C doxygen
++#	$(MAKE) -C doxygen
+ 
+ .PHONY: clean
+ clean:
+ 	$(MAKE) -C src clean
+ 	$(MAKE) -C utils clean
+-	$(MAKE) -C doxygen clean
++#	$(MAKE) -C doxygen clean
+ 
+ .PHONY: install
+ install: $(LIB) $(SHLIB)
+@@ -24,5 +24,5 @@
+ 	cp -Ru $(INCDIR)/tinyalsa $(DESTDIR)$(PREFIX)/include/
+ 	$(MAKE) -C src install
+ 	$(MAKE) -C utils install
+-	$(MAKE) -C doxygen install
++#	$(MAKE) -C doxygen install
+ 
+diff -Naur tinyalsa-1.0.0.ori/src/pcm.c tinyalsa-1.0.0/src/pcm.c
+--- tinyalsa-1.0.0.ori/src/pcm.c	2016-10-02 04:37:39.000000000 +0200
++++ tinyalsa-1.0.0/src/pcm.c	2021-06-28 21:28:48.394863222 +0200
+@@ -26,6 +26,8 @@
+ ** DAMAGE.
+ */
+ 
++#define _GNU_SOURCE
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <fcntl.h>
+@@ -34,12 +36,16 @@
+ #include <errno.h>
+ #include <unistd.h>
+ #include <poll.h>
++#include <signal.h>
+ 
+ #include <sys/ioctl.h>
+ #include <sys/mman.h>
+ #include <sys/time.h>
+ #include <time.h>
+ #include <limits.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <pthread.h>
+ 
+ #include <linux/ioctl.h>
+ #define __force
+@@ -48,10 +54,13 @@
+ #include <sound/asound.h>
+ 
+ #include <tinyalsa/asoundlib.h>
++#include <tinyalsa/wave.h>
+ 
+ #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
+ #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
+ 
++//#define START_WAV_HEADER
++
+ static inline int param_is_mask(int p)
+ {
+     return (p >= SNDRV_PCM_HW_PARAM_FIRST_MASK) &&
+@@ -186,6 +195,14 @@
+     unsigned int subdevice;
+ };
+ 
++/* Handle for the pipe that will be used to clone the audio frames.
++ * Cannot be inside the pcm struct since it crashes to rmm application
++ */
++int snoop_fd = 0;
++int snoop_fd_in = 0;
++int convert_to_mono = 0;
++int convert_to_mono_8khz = 0;
++
+ /** Gets the buffer size of the PCM.
+  * @param pcm A PCM handle.
+  * @return The buffer size of the PCM.
+@@ -562,6 +579,13 @@
+             }
+             return oops(pcm, errno, "cannot read stream data");
+         }
++
++        if (snoop_fd != 0) {
++            /* Write to fifo, ignore the result */
++            pcm_write_snoop_fifo(pcm, data, count);
++            return 0;
++        }
++
+         return 0;
+     }
+ }
+@@ -764,6 +788,15 @@
+     pcm->running = 0;
+     pcm->buffer_size = 0;
+     pcm->fd = -1;
++
++    if (pcm->flags & PCM_IN) {
++        if (snoop_fd > 0)
++            close(snoop_fd);
++    } else {
++        if (snoop_fd_in > 0)
++            close(snoop_fd_in);
++    }
++
+     free(pcm);
+     return 0;
+ }
+@@ -928,6 +961,35 @@
+ #endif
+ 
+     pcm->underruns = 0;
++
++    if (flags & PCM_IN) {
++        if (access("/tmp/audio_fifo_mono.requested", F_OK ) == 0 ) {
++            convert_to_mono = 1;
++        } else if (access("/tmp/audio_fifo_mono_8khz.requested", F_OK ) == 0 ) {
++            convert_to_mono = 1;
++            convert_to_mono_8khz = 1;
++        }
++        if (access("/tmp/audio_fifo.requested", F_OK ) == 0 ) {
++            if (pcm_create_snoop_fifo(pcm) != 0)
++            {
++                oops(pcm, errno, "cannot create snoop fifo");
++                goto fail;
++            }
++            /* Hopefully nobody uses this one */
++            signal(SIGPIPE, SIG_IGN);
++        }
++    } else {
++        if (access("/tmp/audio_in_fifo.requested", F_OK ) == 0 ) {
++            if (pcm_create_snoop_fifo_in(pcm) != 0)
++            {
++                oops(pcm, errno, "cannot create snoop fifo");
++                goto fail;
++            }
++            /* Hopefully nobody uses this one */
++            signal(SIGPIPE, SIG_IGN);
++        }
++    }
++
+     return pcm;
+ 
+ fail:
+@@ -1244,3 +1306,258 @@
+     return pcm->pcm_delay;
+ }
+ 
++int pcm_is_xrun(struct pcm *pcm)
++{
++    if (pcm->underruns > 0)
++    {
++        pcm->underruns = 0;
++        return 1;
++    }
++
++    return 0;
++}
++
++void* fifo_open_r_thread(void *data)
++{
++    int fd;
++    char *fifo_name = data;
++
++    fd = open(fifo_name, O_RDONLY);
++    usleep(250);
++    close(fd);
++
++    return NULL;
++}
++
++void* fifo_open_w_thread(void *data)
++{
++    int fd;
++    char *fifo_name = data;
++
++    fd = open(fifo_name, O_WRONLY);
++    usleep(250);
++    close(fd);
++
++    return NULL;
++}
++
++void* fifo_read_thread(void *data)
++{
++    struct pcm *ppcm = (struct pcm *) data;
++    int num;
++
++    pthread_detach(pthread_self());
++
++    // Read audio from fifo: 1024 samples, 16 bits, mono = 2048 bytes
++    // 1024 samples @ 16 KHz = 64 ms
++    uint8_t snoop_in_buffer[2048];
++
++    while (1) {
++        // Read from fifo
++        num = pcm_read_snoop_fifo(ppcm, snoop_in_buffer, 2048);
++        if (num <= 0) {
++            usleep(10000);
++        } else {
++            if (num < 2048) {
++                memset(snoop_in_buffer + num, '\0', 2048 - num);
++                num = 2048;
++            }
++
++            pcm_write(ppcm, snoop_in_buffer, num);
++        }
++    }
++
++    return NULL;
++}
++
++int pcm_create_snoop_fifo(struct pcm *pcm)
++{
++    char *fifo = "/tmp/audio_fifo";
++    pthread_t open_thread;
++
++    if (mkfifo(fifo, 0666) < 0) {
++        if (errno != EEXIST) {
++            oops(pcm, errno, "cannot create snoop fifo");
++            return -1;
++        }
++    }
++
++    if(pthread_create(&open_thread, NULL, fifo_open_r_thread, fifo)) {
++        oops(pcm, errno, "Error creating thread\n");
++        return -1;
++    }
++
++    snoop_fd = open(fifo, O_WRONLY);
++    if (snoop_fd <= 0) {
++        oops(pcm, errno, "cannot open snoop fifo");
++        return -1;
++    }
++
++    if(pthread_join(open_thread, NULL)) {
++        oops(pcm, errno, "Failed to join unblocking thread");
++        close(snoop_fd);
++        snoop_fd = 0;
++        return -1;
++    }
++
++    if (fcntl(snoop_fd, F_SETFL, O_NONBLOCK) != 0) {
++        oops(pcm, errno, "cannot set non-block to snoop fifo");
++        close(snoop_fd);
++        snoop_fd = 0;
++        return -1;
++    };
++
++    if (fcntl(snoop_fd, F_SETPIPE_SZ, 8192) != 8192) {
++        oops(pcm, errno, "cannot set size to snoop fifo");
++        close(snoop_fd);
++        snoop_fd = 0;
++        return -1;
++    };
++#ifdef START_WAV_HEADER
++    if (pcm_write_snoop_fifo_wavhdr(pcm) != 0) {
++        oops(pcm, errno, "failed to write wave header");
++        close(snoop_fd);
++        snoop_fd = 0;
++        return -1;
++    }
++#endif
++
++    return 0;
++}
++
++int pcm_create_snoop_fifo_in(struct pcm *pcm)
++{
++    char *fifo_in = "/tmp/audio_in_fifo";
++    pthread_t open_in_thread, read_thread;
++
++    if (mkfifo(fifo_in, 0666) < 0) {
++        if (errno != EEXIST) {
++            oops(pcm, errno, "cannot create snoop fifo");
++            return -1;
++        }
++    }
++
++    if(pthread_create(&open_in_thread, NULL, fifo_open_w_thread, fifo_in)) {
++        oops(pcm, errno, "Error creating thread\n");
++        return -1;
++    }
++
++    snoop_fd_in = open(fifo_in, O_RDONLY);
++    if (snoop_fd_in <= 0) {
++        oops(pcm, errno, "cannot open snoop fifo");
++        return -1;
++    }
++
++    if(pthread_join(open_in_thread, NULL)) {
++        oops(pcm, errno, "Failed to join unblocking thread");
++        close(snoop_fd_in);
++        snoop_fd_in = 0;
++        return -1;
++    }
++
++    if(pthread_create(&read_thread, NULL, fifo_read_thread, (void *) pcm)) {
++        oops(pcm, errno, "Error creating thread\n");
++        return -1;
++    }
++
++    if (fcntl(snoop_fd_in, F_SETPIPE_SZ, 8192) != 8192) {
++        oops(pcm, errno, "cannot set non-block to snoop fifo");
++        close(snoop_fd_in);
++        snoop_fd_in = 0;
++        return -1;
++    };
++
++    return 0;
++}
++
++int pcm_write_snoop_fifo(struct pcm *pcm, void *data, unsigned int bytes)
++{
++    unsigned int bytes_to_write;
++    int16_t mono_buf[2048]; /* rmm reads 512 frames per call, 2k to be sure */
++    uint32_t *pcm_ptr = (uint32_t*)data;
++    uint32_t i;
++    uint32_t frames = pcm_bytes_to_frames(pcm, bytes);
++    if (convert_to_mono_8khz) frames = frames / 2;
++    void *data_to_write = mono_buf;
++
++    if (snoop_fd <= 0) {
++        oops(pcm, errno, "snoop fifo is not opened");
++        return -1;
++    }
++
++    if (convert_to_mono) {
++        for (i = 0; i < frames; i++) {
++            mono_buf[i] = *pcm_ptr & 0xffff;
++            pcm_ptr++;
++            if (convert_to_mono_8khz) {
++                pcm_ptr++;
++            }
++        }
++    }
++
++    if (convert_to_mono_8khz) {
++        bytes_to_write = bytes / 4;
++    } else if (convert_to_mono) {
++        bytes_to_write = bytes / 2;
++    } else {
++        bytes_to_write = bytes;
++        data_to_write = data;
++    }
++
++    if (write(snoop_fd, data_to_write, bytes_to_write) < 0) {
++        if (errno == EAGAIN || errno == EWOULDBLOCK) {
++            oops(pcm, errno, "Fifo full!\n");
++            return -1;
++        }
++    }
++    return 0;
++}
++
++int pcm_read_snoop_fifo(struct pcm *pcm, void *data, unsigned int bytes)
++{
++    int count;
++
++    if (snoop_fd_in <= 0) {
++        oops(pcm, errno, "snoop fifo is not opened");
++        return -1;
++    }
++
++    count = read(snoop_fd_in, data, bytes);
++
++    return count;
++}
++
++int pcm_write_snoop_fifo_wavhdr(struct pcm *pcm)
++{
++    struct wav_header header;
++
++    header.riff_id = ID_RIFF;
++    header.riff_sz = 0;
++    header.riff_fmt = ID_WAVE;
++    header.fmt_id = ID_FMT;
++    header.fmt_sz = 16;
++    header.audio_format = FORMAT_PCM;
++    if (convert_to_mono) {
++        header.num_channels = 1;
++    } else {
++        header.num_channels = 2;
++    }
++    if (convert_to_mono_8khz) {
++        header.sample_rate = 8000;
++    } else {
++        header.sample_rate = 16000;
++    }
++    header.bits_per_sample = pcm_format_to_bits(PCM_FORMAT_S16_LE);
++    header.byte_rate = (header.bits_per_sample / 8) * header.num_channels * header.sample_rate;
++    header.block_align = header.num_channels * (header.bits_per_sample / 8);
++    header.data_id = ID_DATA;
++    unsigned int frames = 0;
++    header.data_sz = frames * header.block_align;
++    header.riff_sz = header.data_sz + sizeof(header) - 8;
++
++    if (write(snoop_fd, &header, sizeof(header)) < 0) {
++        oops(pcm, errno, "cannot write wav header\n");
++        return -1;
++    }
++    return 0;
++}

@@ -1,0 +1,82 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header">Static IP Configuration</h3>
+                <span id="loading-static-ip-status" class="loading-text"></span>
+            </div>
+            <div class="page-header-actions">
+                <span class="save-text"></span>
+                <input class="button-primary btn-save" type="button" value="Save Configuration" />
+            </div>
+        </div>
+
+        <div class="card configs-switch">
+            <div class="card-title">Network Interface (IPv4)</div>
+            <p style="margin-bottom:14px;color:var(--text-muted);font-size:1.3rem;">
+                Configure a static IP address. If left blank, DHCP will be automatically used to acquire network parameters.
+                <br/><strong style="color:#ef4444;">Warning:</strong> Entering an incorrect IP or gateway may cause loss of network access.
+            </p>
+            <table class="u-full-width table-compact">
+                <tbody>
+                    <tr>
+                        <td style="width:35%;">
+                            IP Address
+                            <span class="switch-description">Camera static IP (e.g. 192.168.1.100)</span>
+                        </td>
+                        <td>
+                            <input class="u-full-width" type="text" placeholder="192.168.1.100" data-key="STATIC_IP" id="STATIC_IP" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Subnet Mask
+                            <span class="switch-description">Network netmask (e.g. 255.255.255.0)</span>
+                        </td>
+                        <td>
+                            <input class="u-full-width" type="text" placeholder="255.255.255.0" data-key="STATIC_MASK" id="STATIC_MASK" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Gateway
+                            <span class="switch-description">Default router IP address</span>
+                        </td>
+                        <td>
+                            <input class="u-full-width" type="text" placeholder="192.168.1.1" data-key="STATIC_GW" id="STATIC_GW" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Primary DNS
+                            <span class="switch-description">Main DNS resolver (e.g. 1.1.1.1)</span>
+                        </td>
+                        <td>
+                            <input class="u-full-width" type="text" placeholder="1.1.1.1" data-key="STATIC_DNS1" id="STATIC_DNS1" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Secondary DNS
+                            <span class="switch-description">Fallback DNS resolver (e.g. 8.8.8.8)</span>
+                        </td>
+                        <td>
+                            <input class="u-full-width" type="text" placeholder="8.8.8.8" data-key="STATIC_DNS2" id="STATIC_DNS2" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Action / Save Bar -->
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="font-size:1.25rem;color:var(--text-muted);">
+                <span class="strong">Note:</span> Network changes require a reboot to take effect.
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="save-text" id="save-static-ip-status"></div>
+                <input class="button-primary btn-save" type="button" id="button-save-static-ip" value="Save Configuration" />
+            </div>
+        </div>
+    </div>
+</div>

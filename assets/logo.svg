@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 300" width="100%" height="100%">
+  <defs>
+    <style>
+      .brand-yi {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-weight: 900;
+        font-size: 105px;
+        letter-spacing: 5px;
+        fill: #111827;
+      }
+      .ng-bracket {
+        stroke: #0284c7;
+        stroke-width: 5;
+        fill: none;
+      }
+      .ng-title {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-weight: 800;
+        font-size: 40px;
+        letter-spacing: 8px;
+        fill: #0284c7;
+      }
+      .line {
+        stroke: #111827;
+        stroke-width: 7;
+        stroke-linecap: round;
+      }
+      .platform {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-weight: 600;
+        font-size: 50px;
+        letter-spacing: 3px;
+        fill: #111827;
+      }
+      @media (prefers-color-scheme: dark) {
+        .brand-yi { fill: #f9fafb; }
+        .ng-bracket { stroke: #38bdf8; }
+        .ng-title { fill: #38bdf8; }
+        .line { stroke: #f9fafb; }
+        .platform { fill: #f9fafb; }
+      }
+    </style>
+  </defs>
+
+  <!-- Level 1: YI-HACK Centered -->
+  <text x="460" y="105" text-anchor="middle" class="brand-yi">YI-HACK</text>
+
+  <!-- Level 2: NG / NEXT-GEN Tech Frame -->
+  <g transform="translate(460, 155)">
+    <path d="M -140 -20 L -170 -20 L -170 20 L -140 20" class="ng-bracket" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="0" y="12" text-anchor="middle" class="ng-title">NEXT-GEN</text>
+    <path d="M 140 -20 L 170 -20 L 170 20 L 140 20" class="ng-bracket" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Level 3: Platform Divider -->
+  <line x1="120" y1="230" x2="360" y2="230" class="line" />
+  <text x="460" y="247" text-anchor="middle" class="platform">MStar</text>
+  <line x1="560" y1="230" x2="800" y2="230" class="line" />
+</svg>

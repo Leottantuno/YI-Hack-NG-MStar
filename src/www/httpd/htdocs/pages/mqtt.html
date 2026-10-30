@@ -1,0 +1,222 @@
+<div class="row">
+    <div class="twelve columns">
+        <div class="page-header">
+            <div>
+                <h3 class="no-margin" id="header">MQTT Client Configuration</h3>
+                <span id="loading-status" class="loading-text"></span>
+            </div>
+            <div class="page-header-actions">
+                <span class="save-text"></span>
+                <input class="button-primary btn-save" type="button" value="Save Configuration" />
+            </div>
+        </div>
+
+        <p style="margin-bottom:16px;color:var(--text-muted);font-size:1.3rem;">
+            Configure the MQTT client to publish motion and sound events. For Auto-Discovery and Home Assistant advertisement, see <a href="?page=mqtt_adv" style="color:var(--primary);font-weight:600;">MQTT Advertise</a>.
+        </p>
+
+        <div class="row">
+            <!-- Broker Settings -->
+            <div class="six columns">
+                <div class="card configs-switch">
+                    <div class="card-title">Broker Connection</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td style="width:50%;">
+                                    Enable MQTT
+                                    <span class="switch-description">Enable or disable the MQTT client.</span>
+                                </td>
+                                <td class="align-right">
+                                    <label class="switch small">
+                                        <input type="checkbox" id="enable-mqtt" data-key="MQTT" />
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Broker IP / Host</td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="192.168.1.50" data-key="MQTT_IP" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Broker Port</td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="1883" data-key="MQTT_PORT" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Client ID</td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="yi-cam-living" data-key="MQTT_CLIENT_ID" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Authentication -->
+                <div class="card configs-switch">
+                    <div class="card-title">Authentication</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td style="width:40%;">Username</td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="Username (optional)" data-key="MQTT_USER" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Password</td>
+                                <td>
+                                    <input class="u-full-width" type="password" placeholder="••••••••" data-key="MQTT_PASSWORD" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Advanced QoS & Keepalive -->
+                <div class="card configs-switch">
+                    <div class="card-title">Connection Parameters</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td style="width:50%;">
+                                    Keepalive (s)
+                                    <span class="switch-description">Heartbeat interval in seconds.</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="120" data-key="MQTT_KEEPALIVE" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    QoS Level
+                                    <span class="switch-description">Quality of Service (0, 1, or 2).</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="1" data-key="MQTT_QOS" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Retain Birth / Will
+                                    <span class="switch-description">Retain status messages (1 = Yes, 0 = No).</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="1" data-key="MQTT_RETAIN_BIRTH_WILL" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Retain Motion
+                                    <span class="switch-description">Retain motion messages (1 = Yes, 0 = No).</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="1" data-key="MQTT_RETAIN_MOTION" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Retain Snapshot Image
+                                    <span class="switch-description">Retain JPEG payload (1 = Yes, 0 = No).</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="1" data-key="MQTT_RETAIN_MOTION_IMAGE" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Retain Video List
+                                    <span class="switch-description">Retain recorded file list (1 = Yes, 0 = No).</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="1" data-key="MQTT_RETAIN_MOTION_FILES" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Retain Sound Detection
+                                    <span class="switch-description">Retain sound event (1 = Yes, 0 = No).</span>
+                                </td>
+                                <td>
+                                    <input class="u-full-width" type="text" placeholder="1" data-key="MQTT_RETAIN_SOUND_DETECTION" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Topic Details -->
+            <div class="six columns">
+                <div class="card configs-switch">
+                    <div class="card-title">Topic Definitions</div>
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <label class="strong" style="font-size:1.3rem;">Topic Prefix</label>
+                                    <input class="u-full-width" type="text" placeholder="yicam" data-key="MQTT_PREFIX" />
+                                    <span class="switch-description">Base topic (e.g. yicam -> published as yicam/motion).</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <h5 class="strong" style="font-size:1.4rem;color:var(--primary);margin:10px 0 6px 0;">Birth &amp; Will</h5>
+                                    <label style="font-size:1.25rem;">Birth/Will Topic Suffix</label>
+                                    <input class="u-full-width" type="text" id="topic_birth_will" data-key="TOPIC_BIRTH_WILL" />
+                                    <label style="font-size:1.25rem;">Birth Payload Message</label>
+                                    <input class="u-full-width" type="text" id="birth_msg" data-key="BIRTH_MSG" />
+                                    <label style="font-size:1.25rem;">Will Payload Message</label>
+                                    <input class="u-full-width" type="text" id="will_msg" data-key="WILL_MSG" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <h5 class="strong" style="font-size:1.4rem;color:var(--primary);margin:10px 0 6px 0;">Motion Detection</h5>
+                                    <label style="font-size:1.25rem;">Motion Topic Suffix</label>
+                                    <input class="u-full-width" type="text" id="topic_motion" data-key="TOPIC_MOTION" />
+                                    <label style="font-size:1.25rem;">Motion Start Payload</label>
+                                    <input class="u-full-width" type="text" id="motion_start_msg" data-key="MOTION_START_MSG" />
+                                    <label style="font-size:1.25rem;">Motion Stop Payload</label>
+                                    <input class="u-full-width" type="text" id="motion_stop_msg" data-key="MOTION_STOP_MSG" />
+                                    <label style="font-size:1.25rem;">Baby Crying Payload</label>
+                                    <input class="u-full-width" type="text" id="baby_crying_msg" data-key="BABY_CRYING_MSG" />
+                                    <label style="font-size:1.25rem;">Motion Snapshot Topic Suffix</label>
+                                    <input class="u-full-width" type="text" id="topic_motion_image" data-key="TOPIC_MOTION_IMAGE" />
+                                    <label style="font-size:1.25rem;">Delay Before Snapshot (seconds)</label>
+                                    <input class="u-full-width" type="text" id="motion_image_delay" data-key="MOTION_IMAGE_DELAY" />
+                                    <label style="font-size:1.25rem;">Video File List Topic Suffix</label>
+                                    <input class="u-full-width" type="text" id="topic_motion_files" data-key="TOPIC_MOTION_FILES" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <h5 class="strong" style="font-size:1.4rem;color:var(--primary);margin:10px 0 6px 0;">Sound Detection</h5>
+                                    <label style="font-size:1.25rem;">Sound Topic Suffix</label>
+                                    <input class="u-full-width" type="text" id="topic_sound_detection" data-key="TOPIC_SOUND_DETECTION" />
+                                    <label style="font-size:1.25rem;">Sound Detection Payload</label>
+                                    <input class="u-full-width" type="text" id="sound_detection_msg" data-key="SOUND_DETECTION_MSG" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action / Save Bar -->
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="font-size:1.25rem;color:var(--text-muted);">
+                <span class="strong">Note:</span> Configuration changes take effect after camera reboot.
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="save-text" id="save-status"></div>
+                <input class="button-primary btn-save" type="button" id="button-save" value="Save Configuration" />
+            </div>
+        </div>
+    </div>
+</div>

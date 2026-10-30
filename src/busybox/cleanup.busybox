@@ -1,0 +1,12 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+source config.busybox
+
+rm -rf ./_install
+
+rm -rf "${BUILD_FOLDER}"
+rm -f "${ARCHIVE}"
+rm -f "${ARCHIVE_ALT}"

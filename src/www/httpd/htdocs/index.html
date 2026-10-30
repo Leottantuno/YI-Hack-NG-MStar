@@ -1,0 +1,82 @@
+<!doctype html>
+<html class="no-js" lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+        <title>YI-Hack-NG-MStar</title>
+        <meta name="author" content="gaggi, TheCrypt0, ramundomario, roleoroleo, Leottantuno" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />  
+        <link rel="apple-touch-icon" href="img/icon.png" />
+        <link rel="stylesheet" href="css/all.css" />
+    </head>
+
+	<body>
+		<nav class="nav-show">
+			<div class="container">
+				<ul>
+                    <li>
+                        <a id="nav-title" href="index.html" style="font-weight:700;letter-spacing:0.5px;color:var(--text-main);display:inline-flex;align-items:center;gap:6px;">
+                            <span style="color:var(--primary);">YI-Hack-NG</span><span style="background:var(--primary);color:#fff;font-size:10px;padding:2px 5px;border-radius:4px;font-weight:800;">MStar</span>
+                        </a>
+                    </li>
+                    <li data-page="status">
+                        <a href="?page=status" title="Dashboard">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        </a>
+                    </li>
+                    <li data-page="configurations">
+                        <a href="?page=configurations" title="Configurations">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        </a>
+                    </li>
+                    <li data-page="camera_settings">
+                        <a href="?page=camera_settings" title="Camera Settings">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        </a>
+                    </li>
+                    <li data-page="mqtt">
+                        <a href="?page=mqtt" title="MQTT">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </a>
+                    </li>
+                    <li data-page="eventsdir">
+                        <a href="?page=eventsdir" title="Motion Events">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </a>
+                    </li>
+                    <li data-page="snapshot">
+                        <a href="?page=snapshot" title="Snapshot">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        </a>
+                    </li>
+                    <li data-page="ptz">
+                        <a href="?page=ptz" title="PTZ Controls">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+                        </a>
+                    </li>
+                    <li data-page="maintenance">
+                        <a href="?page=maintenance" title="Maintenance">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </a>
+                    </li>
+                    <li class="nav-elem-right">
+                        <div id="theme-switcher">
+                            <a href="#" title="Switch Dark/Light Theme">
+                                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                            </a>
+                        </div>
+                    </li>
+                    <li class="icon">
+                        <a class="nav-toggler ios-onclick-fix" style="font-size:1.8rem;line-height:1;">&#9776;</a>
+                    </li>
+				</ul>
+			</div>
+        </nav>
+
+        <div id="container" class="container">
+        </div>
+
+        <script src="js/jquery.min.js"></script>
+        <script src="cgi-bin/hostname.js"></script>
+        <script src="js/all.js"></script>
+	</body>
+</html>
