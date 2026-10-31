@@ -151,10 +151,11 @@ If your camera is already running `yi-hack-MStar` (v0.5.8 or similar), you **do 
 3. Restart services or reboot the camera.
 
 #### Quick deploy using `cam_ssh.sh`:
-Create a `.env` file based on `.env.example`:
+Create a `.env` file in the repository root:
 ```bash
-CAM_HOST=192.168.1.100
+CAM_UN=admin
 CAM_PW=your_password
+CAM_HOST=192.168.1.100
 ```
 Then run:
 ```bash

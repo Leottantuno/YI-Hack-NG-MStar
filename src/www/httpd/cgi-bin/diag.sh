@@ -77,3 +77,4 @@ fi
 
 printf "Content-type: application/json\r\n\r\n"
 printf '{"error":"true","message":"Unknown action"}\n'
+
