@@ -176,24 +176,31 @@ String.prototype.format = function() {
     return out + str;
 };
 
-// Wait for document to load
+// Theme Switcher & Persistence
+function updateThemeIcon(theme) {
+    var switcher = document.getElementById("theme-switcher");
+    if (!switcher) return;
+    if (theme === "dark") {
+        switcher.innerHTML = '<a href="#" title="Switch to Light Theme" style="display:flex;align-items:center;color:var(--text-main);"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></a>';
+    } else {
+        switcher.innerHTML = '<a href="#" title="Switch to Dark Theme" style="display:flex;align-items:center;color:var(--text-main);"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></a>';
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function(event) {
-    document.documentElement.setAttribute("data-theme", window.localStorage.getItem('data-theme') || "light");
+    var currentTheme = window.localStorage.getItem('data-theme') || "dark";
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    updateThemeIcon(currentTheme);
 
-    // Get our button switcher
     var themeSwitcher = document.getElementById("theme-switcher");
-
-    // When our button gets clicked
-    themeSwitcher.onclick = function() {
-      // Get the current selected theme, on the first run
-      // it should be `light`
-      var currentTheme = document.documentElement.getAttribute("data-theme");
-
-      // Switch between `dark` and `light`
-      var switchToTheme = currentTheme === "dark" ? "light" : "dark"
-
-      // Set our currenet theme to the new one
-      document.documentElement.setAttribute("data-theme", switchToTheme);
-      window.localStorage.setItem('data-theme', switchToTheme);
+    if (themeSwitcher) {
+        themeSwitcher.onclick = function(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            var cur = document.documentElement.getAttribute("data-theme") || "dark";
+            var switchToTheme = cur === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", switchToTheme);
+            window.localStorage.setItem('data-theme', switchToTheme);
+            updateThemeIcon(switchToTheme);
+        };
     }
 });

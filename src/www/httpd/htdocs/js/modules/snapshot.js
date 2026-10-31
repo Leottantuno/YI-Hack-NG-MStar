@@ -19,13 +19,23 @@ APP.snapshot = (function($) {
         isFetching = false;
         currentRes = $('#selectRes').val() || 'high';
         var rateVal = $('#selectRate').val();
-        currentRate = rateVal === 'manual' ? 0 : (parseInt(rateVal, 10) || 2000);
+        if (rateVal === 'mjpeg') {
+            currentRate = 'mjpeg';
+        } else if (rateVal === 'manual') {
+            currentRate = 0;
+        } else {
+            currentRate = parseInt(rateVal, 10) || 2000;
+        }
         watermark = $('#selectWatermark').val() || 'yes';
 
         updateHudHostname();
         updateHudRes();
         registerEventHandler();
-        fetchFrame();
+        if (currentRate === 'mjpeg') {
+            startMjpeg();
+        } else {
+            fetchFrame();
+        }
     }
 
     function updateHudHostname() {
@@ -64,13 +74,24 @@ APP.snapshot = (function($) {
         $(document).on('change.snapshot', '#selectRes', function(e) {
             currentRes = $(this).val();
             updateHudRes();
-            $('#snapSpinner').show();
-            fetchFrame();
+            if (currentRate === 'mjpeg' && isPlaying) {
+                startMjpeg();
+            } else {
+                $('#snapSpinner').show();
+                fetchFrame();
+            }
         });
 
         $(document).on('change.snapshot', '#selectRate', function(e) {
             var val = $(this).val();
-            if (val === 'manual') {
+            if (val === 'mjpeg') {
+                currentRate = 'mjpeg';
+                if (!isPlaying) {
+                    setPlayingState(true);
+                } else {
+                    startMjpeg();
+                }
+            } else if (val === 'manual') {
                 currentRate = 0;
                 setPlayingState(false);
             } else {
@@ -85,8 +106,12 @@ APP.snapshot = (function($) {
 
         $(document).on('change.snapshot', '#selectWatermark', function(e) {
             watermark = $(this).val();
-            $('#snapSpinner').show();
-            fetchFrame();
+            if (currentRate === 'mjpeg' && isPlaying) {
+                startMjpeg();
+            } else {
+                $('#snapSpinner').show();
+                fetchFrame();
+            }
         });
     }
 
@@ -145,6 +170,28 @@ APP.snapshot = (function($) {
         }, ms);
     }
 
+    function startMjpeg() {
+        var target = document.getElementById('imgSnap');
+        if (!target) return;
+        if (refreshTimer) {
+            clearTimeout(refreshTimer);
+            refreshTimer = null;
+        }
+        var mjpegUrl = 'cgi-bin/mjpeg.sh?res=' + currentRes + '&watermark=' + watermark + '&t=' + Date.now();
+        target.src = mjpegUrl;
+        currentFrameUrl = mjpegUrl;
+        $('#snapSpinner').hide();
+        $('#hudStatus').text('MJPEG Live Stream');
+    }
+
+    function stopMjpeg() {
+        var target = document.getElementById('imgSnap');
+        if (target) {
+            target.src = 'cgi-bin/snapshot.sh?res=' + currentRes + '&watermark=' + watermark + '&t=' + Date.now();
+        }
+        $('#hudStatus').text('Paused');
+    }
+
     function setPlayingState(play) {
         isPlaying = play;
         if (refreshTimer) {
@@ -157,13 +204,21 @@ APP.snapshot = (function($) {
             $('#liveBadge').css('background', '#10b981');
             $('#liveBadgeText').text('LIVE');
             $('#liveDot').addClass('live-pulse').css('opacity', '1');
-            fetchFrame();
+            if (currentRate === 'mjpeg') {
+                startMjpeg();
+            } else {
+                fetchFrame();
+            }
         } else {
             $('#btnToggleLive').text('Resume').removeClass('button-primary');
             $('#liveBadge').css('background', '#64748b');
             $('#liveBadgeText').text('PAUSED');
             $('#liveDot').removeClass('live-pulse').css('opacity', '0.5');
-            $('#hudStatus').text('Paused');
+            if (currentRate === 'mjpeg') {
+                stopMjpeg();
+            } else {
+                $('#hudStatus').text('Paused');
+            }
         }
     }
 

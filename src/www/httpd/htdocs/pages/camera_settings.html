@@ -71,6 +71,87 @@
                             <span class="switch-description">Flip video vertically for ceiling mounting.</span>
                         </td>
                     </tr>
+                    <tr class="ptz">
+                        <td>
+                            PTZ Cruise Mode
+                            <span class="switch-description">Automatic patrol scan (PTZ models only).</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:100%;">
+                                <select data-key="CRUISE" id="CRUISE">
+                                    <option value="no">Disabled</option>
+                                    <option value="presets">Patrol Presets</option>
+                                    <option value="360">360° Panoramic Scan</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:20px;">
+            <div class="card-title">Detection & Acoustic Alerts</div>
+            <div class="configs-switch" style="border:0;padding:0;box-shadow:none;margin:0;">
+                <table class="u-full-width config-table">
+                    <tbody>
+                    <tr>
+                        <td>
+                            Motion Sensitivity
+                            <span class="switch-description">Sensitivity threshold for motion detection triggers.</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:100%;">
+                                <select data-key="SENSITIVITY" id="SENSITIVITY">
+                                    <option value="low">Low Sensitivity</option>
+                                    <option value="medium">Medium Sensitivity</option>
+                                    <option value="high">High Sensitivity</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Sound Detection</td>
+                        <td>
+                            <label class="switch small">
+                                <input type="checkbox" data-key="SOUND_DETECTION"/>
+                                <span class="slider round"></span>
+                                <span class="switch-text"></span>
+                            </label>
+                            <span class="switch-description">Trigger alerts and MQTT notifications upon abnormal noise.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Sound Sensitivity
+                            <span class="switch-description">Acoustic decibel trigger threshold.</span>
+                        </td>
+                        <td>
+                            <div class="standard-select" style="max-width:100%;">
+                                <select data-key="SOUND_SENSITIVITY" id="SOUND_SENSITIVITY">
+                                    <option value="30">30 dB (Whisper / Ultra Sensitive)</option>
+                                    <option value="40">40 dB (Quiet Room)</option>
+                                    <option value="50">50 dB (Normal Conversation)</option>
+                                    <option value="60">60 dB (Moderate Noise)</option>
+                                    <option value="70">70 dB (Loud Background)</option>
+                                    <option value="80">80 dB (Loud Noise / Default)</option>
+                                    <option value="90">90 dB (Very Loud / Shout)</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Baby Crying Detection</td>
+                        <td>
+                            <label class="switch small">
+                                <input type="checkbox" data-key="BABY_CRYING_DETECT"/>
+                                <span class="slider round"></span>
+                                <span class="switch-text"></span>
+                            </label>
+                            <span class="switch-description">Specialized acoustic frequency detector for infant crying.</span>
+                        </td>
+                    </tr>
                     </tbody>
                 </table>
             </div>

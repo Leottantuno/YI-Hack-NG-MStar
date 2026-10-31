@@ -45,6 +45,8 @@ if [[ $(get_config RTSP) == "yes" ]] ; then
 fi
 
 printf "\"%s\":\"%s\",\n" "low_res_snapshot"      "http://$LOCAL_IP$D_HTTPD_PORT/cgi-bin/snapshot.sh?res=low&watermark=yes"
-printf "\"%s\":\"%s\"\n" "high_res_snapshot"      "http://$LOCAL_IP$D_HTTPD_PORT/cgi-bin/snapshot.sh?res=high&watermark=yes"
+printf "\"%s\":\"%s\",\n" "high_res_snapshot"     "http://$LOCAL_IP$D_HTTPD_PORT/cgi-bin/snapshot.sh?res=high&watermark=yes"
+printf "\"%s\":\"%s\",\n" "mjpeg_stream"          "http://$LOCAL_IP$D_HTTPD_PORT/cgi-bin/mjpeg.sh?res=low&watermark=yes"
+printf "\"%s\":\"%s\"\n"  "mjpeg_stream_high"     "http://$LOCAL_IP$D_HTTPD_PORT/cgi-bin/mjpeg.sh?res=high&watermark=yes"
 
 printf "}"

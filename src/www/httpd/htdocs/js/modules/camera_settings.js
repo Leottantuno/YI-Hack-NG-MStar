@@ -70,9 +70,15 @@ APP.camera_settings = (function($) {
             dataType: "json",
             success: function(response) {
                 saveStatusElem.text("Saved");
+                setTimeout(function() {
+                    saveStatusElem.text("");
+                }, 3000);
             },
             error: function(response) {
                 saveStatusElem.text("Error while saving");
+                setTimeout(function() {
+                    saveStatusElem.text("");
+                }, 4000);
                 console.log('error', response);
             }
         });

@@ -8,7 +8,21 @@
             <p style="margin-bottom:12px;color:var(--text-muted);font-size:1.3rem;">
                 Browse recorded motion video clips from the microSD card.
             </p>
-            <video id="video" style="display:none;width:100%;max-height:480px;border-radius:6px;background:#000;margin-bottom:16px;" controls autoplay></video>
+            <div id="player-container" style="display:none;background:#0b1120;border-radius:8px;padding:12px;margin-bottom:16px;">
+                <video id="video" style="width:100%;max-height:480px;border-radius:6px;background:#000;" controls autoplay></video>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:1.2rem;font-weight:600;color:#94a3b8;">Speed:</span>
+                        <button class="button btn-sm btn-speed button-primary" data-speed="1" style="margin-bottom:0;">1x</button>
+                        <button class="button btn-sm btn-speed" data-speed="1.5" style="margin-bottom:0;">1.5x</button>
+                        <button class="button btn-sm btn-speed" data-speed="2" style="margin-bottom:0;">2x</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <a id="btn-download-video" class="button btn-sm button-primary" download style="margin-bottom:0;">Download Clip</a>
+                        <button id="btn-close-player" class="button btn-sm" style="margin-bottom:0;">✕ Close</button>
+                    </div>
+                </div>
+            </div>
             <h5 class="tiny-margin strong" id="title-container" style="color:var(--primary);"></h5>
             <div id="table-container" style="overflow-x:auto;"></div>
         </div>

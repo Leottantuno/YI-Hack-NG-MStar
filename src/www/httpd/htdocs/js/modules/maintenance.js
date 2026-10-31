@@ -8,6 +8,7 @@ APP.maintenance = (function($) {
         registerEventHandler();
         setRebootStatus("Camera is online.");
         getFwStatus();
+        loadNetInfo();
     }
 
     function registerEventHandler() {
@@ -34,6 +35,21 @@ APP.maintenance = (function($) {
         });
         $(document).on("click", '#button-umount', function(e) {
             umountSD();
+        });
+        $(document).on("click", '#btn-run-ping', function(e) {
+            e.preventDefault();
+            runPing();
+        });
+        $(document).on("click", '.btn-quick-ping', function(e) {
+            e.preventDefault();
+            var target = $(this).data('target');
+            runPing(target);
+        });
+        $(document).on("keypress", '#ping-target', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                runPing();
+            }
         });
     }
 
@@ -321,6 +337,72 @@ APP.maintenance = (function($) {
                     console.log('error', response);
                     $('input[type="text"][data-key="SD"]').prop('value', "Failed");
                 }
+            }
+        });
+    }
+
+    var currentGateway = "192.168.2.1";
+
+    function loadNetInfo() {
+        $.ajax({
+            type: "GET",
+            url: "cgi-bin/diag.sh?action=netinfo",
+            dataType: "json",
+            success: function(data) {
+                if (data.error === "false") {
+                    $('#diag-ssid').text(data.ssid || "Connected");
+                    var sigText = data.signal_level ? data.signal_level + " dBm" : "-";
+                    if (data.link_quality) sigText += " (Quality: " + data.link_quality + "/70)";
+                    $('#diag-signal').text(sigText);
+                    $('#diag-bssid').text(data.bssid || "-");
+                    $('#diag-ip').text((data.ip || "-") + " / " + (data.netmask || "-"));
+                    $('#diag-gw').text(data.gateway || "-");
+                    $('#diag-dns').text(data.dns || "-");
+                    $('#diag-mac').text(data.mac || "-");
+                    if (data.gateway) {
+                        currentGateway = data.gateway;
+                        $('#ping-target').attr('placeholder', data.gateway);
+                        if (!$('#ping-target').val()) {
+                            $('#ping-target').val(data.gateway);
+                        }
+                    }
+                }
+            },
+            error: function(err) {
+                console.log("Error loading net info", err);
+            }
+        });
+    }
+
+    function runPing(target) {
+        if (!target) target = $('#ping-target').val() || currentGateway;
+        target = target.trim();
+        if (target === "gw") target = currentGateway;
+        $('#ping-target').val(target);
+
+        var outElem = $('#ping-output');
+        outElem.text("Pinging " + target + " (3 packets, timeout 2s)...");
+        $('#btn-run-ping').attr('disabled', true);
+
+        $.ajax({
+            type: "GET",
+            url: "cgi-bin/diag.sh?action=ping&target=" + encodeURIComponent(target),
+            dataType: "json",
+            success: function(res) {
+                $('#btn-run-ping').attr('disabled', false);
+                if (res.error === "false") {
+                    var summary = "--- " + res.target + " ---\n";
+                    if (res.loss) summary += "Loss: " + res.loss + "\n";
+                    if (res.rtt) summary += "RTT: " + res.rtt + "\n\n";
+                    outElem.text(summary + res.output);
+                } else {
+                    outElem.text("Ping error: " + (res.message || "Failed"));
+                }
+            },
+            error: function(err) {
+                $('#btn-run-ping').attr('disabled', false);
+                outElem.text("Network error calling ping tool.");
+                console.log("Ping error", err);
             }
         });
     }

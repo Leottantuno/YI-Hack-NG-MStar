@@ -23,6 +23,7 @@ APP.eventsdir = (function($) {
     }
 
     function deleteDir() {
+        if (!confirm('Are you sure you want to delete this entire folder of recorded events?')) return;
         $.ajax({
             type: "GET",
             url: 'cgi-bin/eventsdirdel.sh?dir=' + event.target.id.substring(14),

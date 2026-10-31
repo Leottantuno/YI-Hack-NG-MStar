@@ -93,5 +93,62 @@
                 </div>
             </div>
         </div>
+
+        <!-- Network & Connectivity Diagnostics Card -->
+        <div class="card" style="margin-top:16px;">
+            <div class="card-title">Network &amp; Connectivity Diagnostics</div>
+            <p style="font-size:1.25rem;color:var(--text-muted);margin-bottom:14px;">
+                Inspect wireless link metrics, network routing parameters, and verify gateway reachability.
+            </p>
+            <div class="row">
+                <div class="six columns">
+                    <table class="u-full-width table-compact">
+                        <tbody>
+                        <tr>
+                            <td style="width:40%;font-weight:600;">Wi-Fi Network (SSID)</td>
+                            <td id="diag-ssid">-</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">Signal Level / Quality</td>
+                            <td id="diag-signal">-</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">Access Point BSSID</td>
+                            <td id="diag-bssid">-</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">IP / Netmask</td>
+                            <td id="diag-ip">-</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">Default Gateway</td>
+                            <td id="diag-gw">-</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">DNS Servers</td>
+                            <td id="diag-dns">-</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">MAC Address</td>
+                            <td id="diag-mac">-</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="six columns">
+                    <label style="font-size:1.15rem;font-weight:600;margin-bottom:4px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Ping Reachability Test</label>
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <input class="u-full-width" type="text" id="ping-target" placeholder="192.168.2.1" style="margin-bottom:0;" />
+                        <button class="button-primary btn-sm" id="btn-run-ping" style="white-space:nowrap;margin-bottom:0;">Ping Test</button>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+                        <button class="button btn-sm btn-quick-ping" data-target="gw" style="margin-bottom:0;font-size:1.1rem;padding:2px 8px;">Gateway</button>
+                        <button class="button btn-sm btn-quick-ping" data-target="1.1.1.1" style="margin-bottom:0;font-size:1.1rem;padding:2px 8px;">Cloudflare (1.1.1.1)</button>
+                        <button class="button btn-sm btn-quick-ping" data-target="8.8.8.8" style="margin-bottom:0;font-size:1.1rem;padding:2px 8px;">Google (8.8.8.8)</button>
+                    </div>
+                    <pre id="ping-output" style="background:#090d16;color:#38bdf8;padding:10px;border-radius:6px;font-size:1.15rem;height:120px;overflow-y:auto;margin:0;font-family:monospace;white-space:pre-wrap;">Ready to test ping connectivity...</pre>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
