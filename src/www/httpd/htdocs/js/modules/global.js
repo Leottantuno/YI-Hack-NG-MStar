@@ -8,14 +8,21 @@ APP.global = (function($) {
     }
 
     function registerEventHandler() {
-        $(document).on('click', 'html', function(e) {
-            $('nav').removeClass('mobile');
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('nav').length) {
+                $('nav').removeClass('mobile');
+            }
         });
 
         $(document).on('click', '.nav-toggler', function(e) {
             $('nav').toggleClass('mobile');
             e.preventDefault();
             e.stopPropagation();
+        });
+
+        // Close drawer after choosing a page link
+        $(document).on('click', 'nav ul li[data-page] a', function() {
+            $('nav').removeClass('mobile');
         });
     }
 

@@ -106,32 +106,77 @@ nav ul li.icon {
 }
 
 @media screen and (max-width: 820px) {
+	/* Collapsed: logo + theme + hamburger only */
+	nav ul {
+		flex-wrap: wrap;
+	}
 	nav ul li:not(:first-child):not(.nav-elem-right):not(.icon) {
 		display: none;
 	}
 	nav ul li.icon {
-		display: inline-block;
-		margin-left: 8px;
+		display: list-item;
+		margin-left: 4px;
+	}
+	nav ul li.nav-elem-right {
+		margin-left: auto;
+	}
+
+	/* Expanded: nav must grow — fixed 52px height was clipping the menu */
+	nav.mobile {
+		height: auto;
+		max-height: calc(100vh - 8px);
+		overflow-x: hidden;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+	nav.mobile .container {
+		height: auto;
+		align-items: flex-start;
 	}
 	nav.mobile ul {
-		flex-direction: column;
-		align-items: stretch;
-		background: var(--nav-bg);
-		padding: 10px 0;
-		border-bottom: 1px solid var(--nav-border);
+		align-items: center;
+		padding: 0 0 8px 0;
 	}
-	nav.mobile ul li:not(:first-child) {
-		display: block;
+
+	/* Keep logo / theme / hamburger on the first row */
+	nav.mobile ul li:first-child {
+		order: 0;
 	}
-	nav.mobile ul li a {
-		padding: 12px 16px;
+	nav.mobile ul li.nav-elem-right {
+		order: 1;
+		margin-left: auto;
+	}
+	nav.mobile ul li.icon {
+		order: 2;
+		margin-left: 4px;
+	}
+
+	/* Page links: full-width rows under the top bar */
+	nav.mobile ul li:not(:first-child):not(.nav-elem-right):not(.icon) {
+		display: list-item;
+		order: 10;
+		flex: 0 0 100%;
 		width: 100%;
-		border-radius: 0;
+		border-top: 1px solid var(--nav-border);
 	}
-	nav.mobile ul li a:after {
+	nav.mobile ul li:not(:first-child):not(.nav-elem-right):not(.icon) a {
+		display: flex;
+		padding: 14px 16px;
+		width: 100%;
+		box-sizing: border-box;
+		border-radius: 0;
+		min-height: 44px;
+	}
+	nav.mobile ul li:not(:first-child):not(.nav-elem-right):not(.icon) a:after {
 		content: attr(title);
-		margin-left: 10px;
+		margin-left: 12px;
 		font-weight: 500;
+		color: var(--text-main);
+	}
+	nav.mobile ul li.icon a.nav-toggler {
+		font-size: 2.2rem;
+		line-height: 1;
+		padding: 8px 12px;
 	}
 }
 

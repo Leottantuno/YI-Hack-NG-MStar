@@ -6,7 +6,7 @@ MQTTV4_CONF_FILE="/home/yi-hack/etc/mqttv4.conf"
 
 PARMS1="
 HTTPD=yes
-TELNETD=yes
+TELNETD=no
 SSHD=yes
 FTPD=yes
 BUSYBOX_FTPD=no

@@ -117,6 +117,7 @@ if [ -f $YI_HACK_PREFIX/etc/TZ ]; then
     TZ_TMP=`cat $YI_HACK_PREFIX/etc/TZ`
 fi
 
+HTTPD_AUTH_READY=no
 if [[ x$(get_config USERNAME) != "x" ]] ; then
     log "Setting username and password"
     USERNAME=$(get_config USERNAME)
@@ -126,9 +127,17 @@ if [[ x$(get_config USERNAME) != "x" ]] ; then
     echo "/onvif::" > /tmp/httpd.conf
     echo "/:$USERNAME:$PASSWORD" >> /tmp/httpd.conf
     chmod 0600 /tmp/httpd.conf
+    HTTPD_AUTH_READY=yes
+else
+    # Fail closed: never start httpd without Basic Auth credentials.
+    log "USERNAME empty — httpd will not start until web credentials are set" 1
+    rm -f /tmp/httpd.conf
+    touch /tmp/httpd.conf
+    chmod 0600 /tmp/httpd.conf
 fi
 
-PASSWORD_MD5='$1$$qRPK7m23GJusamGpoGLby/'
+# Locked account by default (reject empty-password logins). Unlock only when SSH_PASSWORD is set.
+PASSWORD_MD5='*'
 if [[ x$(get_config SSH_PASSWORD) != "x" ]] ; then
     log "Setting SSH password"
     SSH_PASSWORD=$(get_config SSH_PASSWORD)
@@ -235,8 +244,12 @@ if [ -f $YI_HACK_PREFIX/etc/TZ ]; then
 fi
 
 if [[ $(get_config HTTPD) == "yes" ]] ; then
-    log "Starting http"
-    httpd -p $HTTPD_PORT -h $YI_HACK_PREFIX/www/ -c /tmp/httpd.conf
+    if [[ "$HTTPD_AUTH_READY" == "yes" ]] ; then
+        log "Starting http"
+        httpd -p $HTTPD_PORT -h $YI_HACK_PREFIX/www/ -c /tmp/httpd.conf
+    else
+        log "Skipping httpd: set USERNAME/PASSWORD in system.conf first" 1
+    fi
 fi
 
 if [[ $(get_config TELNETD) == "yes" ]] ; then

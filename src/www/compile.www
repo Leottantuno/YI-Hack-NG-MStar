@@ -61,7 +61,12 @@ cp ./httpd/htdocs/pages/*.html ./_install/www/pages/
 cp -R ./httpd/htdocs/img/. ./_install/www/img/
 cp -R ./httpd/cgi-bin/* ./_install/www/cgi-bin/
 
-echo "Compressing web assets with GZIP -9..."
-find ./_install/www/* -type f -not \( -path './_install/www/cgi-bin/*' -prune \) -exec gzip -f -9 {} +
+echo "Compressing web assets with GZIP -9 (keep uncompressed fallbacks)..."
+# Busybox httpd serves *.gz only when the client sends Accept-Encoding: gzip.
+# Some mobile browsers / WebViews request without gzip and get 404 if only
+# the .gz file exists — keep plain files alongside .gz.
+find ./_install/www/* -type f -not \( -path './_install/www/cgi-bin/*' -prune \) -not -name '*.gz' | while read -r f; do
+    gzip -9 -c "$f" > "$f.gz"
+done
 
 echo "Web UI compilation succeeded."

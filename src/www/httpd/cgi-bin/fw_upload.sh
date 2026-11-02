@@ -5,6 +5,14 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/lib:/home/yi-hack/lib:/tmp/sd/yi-h
 
 YI_HACK_PREFIX="/home/yi-hack"
 
+# 0. Require httpd Basic Auth (REMOTE_USER is set only after successful auth)
+if [ -z "$REMOTE_USER" ]; then
+    printf "Status: 401 Unauthorized\r\n"
+    printf "Content-type: application/json\r\n\r\n"
+    printf '{"error": true, "message": "Authentication required for firmware upload."}\n'
+    exit 0
+fi
+
 # 1. Check if SD card is mounted
 FREE_SD=$(df /tmp/sd/ 2>/dev/null | grep -E 'mmc|sd' | awk '{print $4}')
 if [ -z "$FREE_SD" ]; then
@@ -70,6 +78,18 @@ fi
 # 8. Extract the archive
 tar -zxvf manual_upload.tgz >/dev/null 2>&1
 rm -f manual_upload.tgz
+
+# 8b. Optional integrity: if SHA256SUMS is present, verify listed partition images
+if [ -f SHA256SUMS ]; then
+    if ! sha256sum -c SHA256SUMS >/dev/null 2>&1; then
+        cd /
+        rm -rf /tmp/sd/.fw_upgrade
+        printf "Status: 400 Bad Request\r\n"
+        printf "Content-type: application/json\r\n\r\n"
+        printf '{"error": true, "message": "Firmware integrity check failed (SHA256SUMS mismatch)."}\n'
+        exit 0
+    fi
+fi
 
 # 9. Move partitions to the SD root (/tmp/sd/) where MStar bootloader expects them
 mv -f sys_* home_* .. 2>/dev/null
