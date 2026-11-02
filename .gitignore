@@ -40,3 +40,6 @@ src/snapshot/snapshot/imggrabber
 .env
 .env.*
 .env.example
+
+# Local CI/toolchain prefetch artifacts
+.debs/
