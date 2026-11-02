@@ -1,8 +1,8 @@
 #!/bin/sh
 
-CONF_FILE="etc/system.conf"
-
 YI_HACK_PREFIX="/home/yi-hack"
+
+. $YI_HACK_PREFIX/script/common.sh
 
 YI_HACK_VER=$(cat /home/yi-hack/version)
 MODEL_SUFFIX=$(cat /home/yi-hack/model_suffix)
@@ -13,44 +13,28 @@ else
 fi
 HW_ID=$(dd status=none bs=1 count=4 skip=661 if=/tmp/mmap.info | tr '\0' '0' | cut -c1-4)
 
-get_config()
-{
-    key=$1
-    grep -w $1 $YI_HACK_PREFIX/$CONF_FILE | cut -d "=" -f2-
-}
-
 init_config()
 {
     if [ -f $YI_HACK_PREFIX/etc/TZ ]; then
         TZ_TMP=`cat $YI_HACK_PREFIX/etc/TZ`
     fi
 
-    RTSP_AUTH_OK=yes
-    if [[ x$(get_config USERNAME) != "x" ]] ; then
-        USERNAME=$(get_config USERNAME)
-        PASSWORD=$(get_config PASSWORD)
-        if [ -n "$PASSWORD" ]; then
-            ONVIF_USERPWD="user=$USERNAME\npassword=$PASSWORD"
-            RTSP_USERPWD=$USERNAME:$PASSWORD@
-        else
-            echo "USERNAME set but PASSWORD empty — ONVIF/RTSP auth incomplete" >&2
-            RTSP_AUTH_OK=no
-        fi
+    load_web_credentials
+    if [ -n "$USERNAME" ] && [ -z "$PASSWORD" ]; then
+        echo "USERNAME set but PASSWORD empty — ONVIF/RTSP auth incomplete" >&2
+        RTSP_AUTH_OK=no
+    else
+        RTSP_AUTH_OK=yes
     fi
 
-    case $(get_config RTSP_PORT) in
-        ''|*[!0-9]*) RTSP_PORT=554 ;;
-        *) RTSP_PORT=$(get_config RTSP_PORT) ;;
-    esac
-    case $(get_config HTTPD_PORT) in
-        ''|*[!0-9]*) HTTPD_PORT=80 ;;
-        *) HTTPD_PORT=$(get_config HTTPD_PORT) ;;
-    esac
+    RTSP_PORT=$(get_port_config RTSP_PORT 554)
+    HTTPD_PORT=$(get_port_config HTTPD_PORT 80)
 
+    D_RTSP_PORT=""
+    D_HTTPD_PORT=""
     if [[ $RTSP_PORT != "554" ]] ; then
         D_RTSP_PORT=:$RTSP_PORT
     fi
-
     if [[ $HTTPD_PORT != "80" ]] ; then
         D_HTTPD_PORT=:$HTTPD_PORT
     fi
@@ -94,16 +78,7 @@ init_config()
             P_RTSP_PORT="-p "$RTSP_PORT
         fi
         # Require both credentials for RTSP auth; never pass only one (fail-open).
-        RTSP_AUTH_OK=yes
-        if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
-            RTSP_USER="-u $USERNAME"
-            RTSP_PASSWORD="-w $PASSWORD"
-        elif [ -n "$USERNAME" ] || [ -n "$PASSWORD" ]; then
-            echo "RTSP: USERNAME/PASSWORD incomplete — refusing to start RTSP unauthenticated" >&2
-            RTSP_USER=""
-            RTSP_PASSWORD=""
-            RTSP_AUTH_OK=no
-        fi
+        setup_rtsp_auth_args
         if [ ! -z $NR_LEVEL ]; then
             NR_LEVEL="-n "$NR_LEVEL
         fi
@@ -148,10 +123,112 @@ init_config()
     fi
 }
 
+start_rtsp_grabbers()
+{
+    killall -q h264grabber h264grabber_l h264grabber_h 2>/dev/null || true
+    case "$RTSP_RES" in
+        low)
+            h264grabber_l -m $MODEL_SUFFIX -r low -f &
+            ;;
+        high)
+            h264grabber_h -m $MODEL_SUFFIX -r high -f &
+            ;;
+        both)
+            h264grabber_l -m $MODEL_SUFFIX -r low -f &
+            h264grabber_h -m $MODEL_SUFFIX -r high -f &
+            ;;
+    esac
+    sleep 1
+}
+
+ensure_rtsp_watchdog()
+{
+    WD_COUNT=$(ps | grep wd.sh | grep -v grep | grep -c ^)
+    if [ $WD_COUNT -eq 0 ]; then
+        (sleep 30; $YI_HACK_PREFIX/script/wd.sh >/dev/null) &
+    fi
+}
+
+start_rtsp_go2rtc()
+{
+    echo "streams:" > /tmp/go2rtc.yaml
+    if [ "$RTSP_RES" == "high" ] || [ "$RTSP_RES" == "both" ]; then
+        echo "  ch0_0.h264:" >> /tmp/go2rtc.yaml
+        echo "    - exec:h264grabber_h -m $MODEL_SUFFIX -r high#backchannel=0" >> /tmp/go2rtc.yaml
+    fi
+    if [ "$RTSP_RES" == "low" ] || [ "$RTSP_RES" == "both" ]; then
+        echo "  ch0_1.h264:" >> /tmp/go2rtc.yaml
+        echo "    - exec:h264grabber_l -m $MODEL_SUFFIX -r low#backchannel=0" >> /tmp/go2rtc.yaml
+    fi
+
+    echo "" >> /tmp/go2rtc.yaml
+    echo "api:" >> /tmp/go2rtc.yaml
+    echo "  listen: \"\"" >> /tmp/go2rtc.yaml
+    echo "" >> /tmp/go2rtc.yaml
+    echo "webrtc:" >> /tmp/go2rtc.yaml
+    echo "  listen: \"\"" >> /tmp/go2rtc.yaml
+    echo "" >> /tmp/go2rtc.yaml
+    echo "rtsp:" >> /tmp/go2rtc.yaml
+    echo "  listen: \":$RTSP_PORT\"" >> /tmp/go2rtc.yaml
+    if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
+        echo "  username: \"$USERNAME\"" >> /tmp/go2rtc.yaml
+        echo "  password: \"$PASSWORD\"" >> /tmp/go2rtc.yaml
+    fi
+
+    /tmp/sd/yi-hack/bin/go2rtc -c /tmp/go2rtc.yaml -d
+}
+
+start_rtsp_alternative()
+{
+    CODEC_LOW=$(cat /tmp/lowres)
+    if [ ! -z $CODEC_LOW ]; then
+        CODEC_LOW="-c "$CODEC_LOW
+    fi
+    CODEC_HIGH=$(cat /tmp/highres)
+    if [ ! -z $CODEC_HIGH ]; then
+        CODEC_HIGH="-C "$CODEC_HIGH
+    fi
+
+    start_rtsp_grabbers
+    case "$RTSP_RES" in
+        low)
+            $RTSP_DAEMON -m $MODEL_SUFFIX -r low $CODEC_LOW $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
+            ;;
+        high)
+            $RTSP_DAEMON -m $MODEL_SUFFIX -r high $CODEC_HIGH $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
+            ;;
+        both)
+            $RTSP_DAEMON -m $MODEL_SUFFIX -r both $CODEC_LOW $CODEC_HIGH $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
+            ;;
+    esac
+    ensure_rtsp_watchdog
+}
+
+start_rtsp_standard()
+{
+    CODEC_LOW="h264"
+    CODEC_HIGH="h264"
+    if [[ $MODEL_SUFFIX == H305R ]]; then
+        CODEC_HIGH="h265"
+    fi
+
+    start_rtsp_grabbers
+    case "$RTSP_RES" in
+        low)
+            $RTSP_DAEMON -r low -c $CODEC_LOW $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
+            ;;
+        high)
+            $RTSP_DAEMON -r high -C $CODEC_HIGH $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
+            ;;
+        both)
+            $RTSP_DAEMON -r both -c $CODEC_LOW -C $CODEC_HIGH $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
+            ;;
+    esac
+    ensure_rtsp_watchdog
+}
+
 start_rtsp()
 {
-    # If "null" use default
-
     if [ "$RTSP_AUTH_OK" = "no" ]; then
         echo "Skipping RTSP start: set both USERNAME and PASSWORD in system.conf" >&2
         return
@@ -166,91 +243,11 @@ start_rtsp()
     fi
 
     if [ "$RTSP_ALT" == "go2rtc" ]; then
-        echo "streams:" > /tmp/go2rtc.yaml
-        if [ "$RTSP_RES" == "high" ] || [ "$RTSP_RES" == "both" ]; then
-            echo "  ch0_0.h264:" >> /tmp/go2rtc.yaml
-            echo "    - exec:h264grabber_h -m $MODEL_SUFFIX -r high#backchannel=0" >> /tmp/go2rtc.yaml
-        fi
-        if [ "$RTSP_RES" == "low" ] || [ "$RTSP_RES" == "both" ]; then
-            echo "  ch0_1.h264:" >> /tmp/go2rtc.yaml
-            echo "    - exec:h264grabber_l -m $MODEL_SUFFIX -r low#backchannel=0" >> /tmp/go2rtc.yaml
-        fi
-
-        echo "" >> /tmp/go2rtc.yaml
-        echo "api:" >> /tmp/go2rtc.yaml
-        echo "  listen: \"\"" >> /tmp/go2rtc.yaml
-        echo "" >> /tmp/go2rtc.yaml
-        echo "webrtc:" >> /tmp/go2rtc.yaml
-        echo "  listen: \"\"" >> /tmp/go2rtc.yaml
-        echo "" >> /tmp/go2rtc.yaml
-        echo "rtsp:" >> /tmp/go2rtc.yaml
-        echo "  listen: \":$RTSP_PORT\"" >> /tmp/go2rtc.yaml
-        if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
-            echo "  username: \"$USERNAME\"" >> /tmp/go2rtc.yaml
-            echo "  password: \"$PASSWORD\"" >> /tmp/go2rtc.yaml
-        fi
-
-        /tmp/sd/yi-hack/bin/go2rtc -c /tmp/go2rtc.yaml -d
+        start_rtsp_go2rtc
     elif [ "$RTSP_ALT" == "alternative" ]; then
-
-        killall -q h264grabber h264grabber_l h264grabber_h 2>/dev/null || true
-
-        CODEC_LOW=$(cat /tmp/lowres)
-        if [ ! -z $CODEC_LOW ]; then
-            CODEC_LOW="-c "$CODEC_LOW
-        fi
-        CODEC_HIGH=$(cat /tmp/highres)
-        if [ ! -z $CODEC_HIGH ]; then
-            CODEC_HIGH="-C "$CODEC_HIGH
-        fi
-
-        if [[ $RTSP_RES == "low" ]]; then
-            h264grabber_l -m $MODEL_SUFFIX -r low  -f &
-            sleep 1
-            $RTSP_DAEMON -m $MODEL_SUFFIX -r low $CODEC_LOW $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
-        elif [[ $RTSP_RES == "high" ]]; then
-            h264grabber_h -m $MODEL_SUFFIX -r high -f &
-            sleep 1
-            $RTSP_DAEMON -m $MODEL_SUFFIX -r high $CODEC_HIGH $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
-        elif [[ $RTSP_RES == "both" ]]; then
-            h264grabber_l -m $MODEL_SUFFIX -r low -f &
-            h264grabber_h -m $MODEL_SUFFIX -r high -f &
-            sleep 1
-            $RTSP_DAEMON -m $MODEL_SUFFIX -r both $CODEC_LOW $CODEC_HIGH $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
-        fi
-
-        WD_COUNT=$(ps | grep wd.sh | grep -v grep | grep -c ^)
-        if [ $WD_COUNT -eq 0 ]; then
-            (sleep 30; $YI_HACK_PREFIX/script/wd.sh >/dev/null) &
-        fi
+        start_rtsp_alternative
     else
-
-        killall -q h264grabber h264grabber_l h264grabber_h 2>/dev/null || true
-
-        CODEC_LOW="h264"
-        CODEC_HIGH="h264"
-        if [[ $MODEL_SUFFIX == H305R ]]; then
-            CODEC_HIGH="h265"
-        fi
-        if [[ $RTSP_RES == "low" ]]; then
-            h264grabber_l -m $MODEL_SUFFIX -r low -f &
-            sleep 1
-            $RTSP_DAEMON -r low -c $CODEC_LOW $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
-        elif [[ $RTSP_RES == "high" ]]; then
-            h264grabber_h -m $MODEL_SUFFIX -r high -f &
-            sleep 1
-            $RTSP_DAEMON -r high -C $CODEC_HIGH $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
-        elif [[ $RTSP_RES == "both" ]]; then
-            h264grabber_l -m $MODEL_SUFFIX -r low -f &
-            h264grabber_h -m $MODEL_SUFFIX -r high -f &
-            sleep 1
-            $RTSP_DAEMON -r both -c $CODEC_LOW -C $CODEC_HIGH $RTSP_AUDIO_OPTION $P_RTSP_PORT $RTSP_USER $RTSP_PASSWORD $RTSP_AUDIO_BC $NR_LEVEL > /dev/null &
-        fi
-
-        WD_COUNT=$(ps | grep wd.sh | grep -v grep | grep -c ^)
-        if [ $WD_COUNT -eq 0 ]; then
-            (sleep 30; $YI_HACK_PREFIX/script/wd.sh >/dev/null) &
-        fi
+        start_rtsp_standard
     fi
 }
 
@@ -264,10 +261,14 @@ stop_rtsp()
     killall -q go2rtc 2>/dev/null
 }
 
+onvif_profile_line()
+{
+    # $1=name $2=width $3=height $4=stream_path $5=snap_res
+    echo "name=$1\nwidth=$2\nheight=$3\nurl=rtsp://$RTSP_USERPWD%s$D_RTSP_PORT/$4\nsnapurl=http://$RTSP_USERPWD%s$D_HTTPD_PORT/cgi-bin/snapshot.sh?res=$5$WATERMARK\ntype=H264\n$ONVIF_AUDIO_ENCODER\n$ONVIF_AUDIO_DECODER"
+}
+
 start_onvif()
 {
-    # If "null" use default
-
     if [[ "$2" == "null" ]]; then
         ONVIF_WM_SNAPSHOT=$(get_config ONVIF_WM_SNAPSHOT)
         WATERMARK="&watermark="$ONVIF_WM_SNAPSHOT
@@ -279,15 +280,14 @@ start_onvif()
     elif [[ "$1" == "low" ]] || [[ "$1" == "high" ]] || [[ "$1" == "both" ]]; then
         ONVIF_PROFILE=$1
     fi
-    if [[ $ONVIF_PROFILE == "high" ]]; then
-        ONVIF_PROFILE_0="name=Profile_0\nwidth=1920\nheight=1080\nurl=rtsp://$RTSP_USERPWD%s$D_RTSP_PORT/ch0_0.h264\nsnapurl=http://$RTSP_USERPWD%s$D_HTTPD_PORT/cgi-bin/snapshot.sh?res=high$WATERMARK\ntype=H264\n$ONVIF_AUDIO_ENCODER\n$ONVIF_AUDIO_DECODER"
+
+    ONVIF_PROFILE_0=""
+    ONVIF_PROFILE_1=""
+    if [[ $ONVIF_PROFILE == "high" ]] || [[ $ONVIF_PROFILE == "both" ]]; then
+        ONVIF_PROFILE_0=$(onvif_profile_line Profile_0 1920 1080 ch0_0.h264 high)
     fi
-    if [[ $ONVIF_PROFILE == "low" ]]; then
-        ONVIF_PROFILE_1="name=Profile_1\nwidth=640\nheight=360\nurl=rtsp://$RTSP_USERPWD%s$D_RTSP_PORT/ch0_1.h264\nsnapurl=http://$RTSP_USERPWD%s$D_HTTPD_PORT/cgi-bin/snapshot.sh?res=low$WATERMARK\ntype=H264\n$ONVIF_AUDIO_ENCODER\n$ONVIF_AUDIO_DECODER"
-    fi
-    if [[ $ONVIF_PROFILE == "both" ]]; then
-        ONVIF_PROFILE_0="name=Profile_0\nwidth=1920\nheight=1080\nurl=rtsp://$RTSP_USERPWD%s$D_RTSP_PORT/ch0_0.h264\nsnapurl=http://$RTSP_USERPWD%s$D_HTTPD_PORT/cgi-bin/snapshot.sh?res=high$WATERMARK\ntype=H264\n$ONVIF_AUDIO_ENCODER\n$ONVIF_AUDIO_DECODER"
-        ONVIF_PROFILE_1="name=Profile_1\nwidth=640\nheight=360\nurl=rtsp://$RTSP_USERPWD%s$D_RTSP_PORT/ch0_1.h264\nsnapurl=http://$RTSP_USERPWD%s$D_HTTPD_PORT/cgi-bin/snapshot.sh?res=low$WATERMARK\ntype=H264\n$ONVIF_AUDIO_ENCODER\n$ONVIF_AUDIO_DECODER"
+    if [[ $ONVIF_PROFILE == "low" ]] || [[ $ONVIF_PROFILE == "both" ]]; then
+        ONVIF_PROFILE_1=$(onvif_profile_line Profile_1 640 360 ch0_1.h264 low)
     fi
 
     ONVIF_SRVD_CONF="/tmp/onvif_simple_server.conf"
@@ -409,17 +409,22 @@ stop_wsdd()
     killall wsd_simple_server
 }
 
-start_ftpd()
+ftpd_daemon_name()
 {
     if [[ "$1" == "null" ]] ; then
         if [[ $(get_config BUSYBOX_FTPD) == "yes" ]] ; then
-            FTPD_DAEMON="busybox"
+            echo "busybox"
         else
-            FTPD_DAEMON="pure-ftpd"
+            echo "pure-ftpd"
         fi
     else
-        FTPD_DAEMON=$1
+        echo "$1"
     fi
+}
+
+start_ftpd()
+{
+    FTPD_DAEMON=$(ftpd_daemon_name "$1")
 
     if [[ $FTPD_DAEMON == "busybox" ]] ; then
         tcpsvd -vE 0.0.0.0 21 ftpd -w >/dev/null &
@@ -430,20 +435,24 @@ start_ftpd()
 
 stop_ftpd()
 {
-    if [[ "$1" == "null" ]] ; then
-        if [[ $(get_config BUSYBOX_FTPD) == "yes" ]] ; then
-            FTPD_DAEMON="busybox"
-        else
-            FTPD_DAEMON="pure-ftpd"
-        fi
-    else
-        FTPD_DAEMON=$1
-    fi
+    FTPD_DAEMON=$(ftpd_daemon_name "$1")
 
     if [[ $FTPD_DAEMON == "busybox" ]] ; then
         killall tcpsvd
     elif [[ $FTPD_DAEMON == "pure-ftpd" ]] ; then
         killall pure-ftpd
+    fi
+}
+
+start_mp4record_svc()
+{
+    cd /home/app
+    if [[ $(get_config TIME_OSD) == "yes" ]] ; then
+        TZP=`TZ=$TZ_TMP date +%z`
+        TZP=${TZP:0:3}:${TZP:3:2}
+        TZ=GMT$TZP ./mp4record > /dev/null &
+    else
+        ./mp4record > /dev/null &
     fi
 }
 
@@ -492,14 +501,7 @@ if [ "$ACTION" == "start" ] ; then
     elif [ "$NAME" == "mqtt-config" ]; then
         mqtt-config > /dev/null &
     elif [ "$NAME" == "mp4record" ]; then
-        cd /home/app
-        if [[ $(get_config TIME_OSD) == "yes" ]] ; then
-            TZP=`TZ=$TZ_TMP date +%z`
-            TZP=${TZP:0:3}:${TZP:3:2}
-            TZ=GMT$TZP ./mp4record > /dev/null &
-        else
-            ./mp4record > /dev/null &
-        fi
+        start_mp4record_svc
     elif [ "$NAME" == "all" ]; then
         start_rtsp
         start_onvif
@@ -507,14 +509,7 @@ if [ "$ACTION" == "start" ] ; then
         start_ftpd
         mqttv4 > /dev/null &
         mqtt-config > /dev/null &
-        cd /home/app
-        if [[ $(get_config TIME_OSD) == "yes" ]] ; then
-            TZP=`TZ=$TZ_TMP date +%z`
-            TZP=${TZP:0:3}:${TZP:3:2}
-            TZ=GMT$TZP ./mp4record > /dev/null &
-        else
-            ./mp4record > /dev/null &
-        fi
+        start_mp4record_svc
     fi
 elif [ "$ACTION" == "stop" ] ; then
     if [ "$NAME" == "rtsp" ]; then

@@ -237,6 +237,25 @@ cd src/rRTSPServer
 
 Alternatively, push changes to the repository and download the artifacts automatically compiled by the GitHub Actions workflow in `.github/workflows/build-rrtspserver.yml`.
 
+### Packaging a release (`pack_release`)
+
+```bash
+# Full public image (default): ONVIF, alt-RTSP, proxychains, www plain+.gz
+./scripts/pack_release.sh y203c 0.3.2
+
+# Slim image: strips optional modules, www plain only — better /home headroom
+PACK_PROFILE=slim ./scripts/pack_release.sh y203c 0.3.2
+
+# Optional extra strip (comma-separated basenames)
+PACK_PROFILE=slim PACK_STRIP_EXTRA=imggrabber ./scripts/pack_release.sh y203c 0.3.2
+
+# Check estimated free space after pack / on camera
+./scripts/check_home_headroom.sh report y203c 0.3.2 slim
+./scripts/check_home_headroom.sh cam 192.168.2.62
+```
+
+See [docs/resource-profile.md](docs/resource-profile.md) for RAM/CPU process mapping vs flash slimdown.
+
 ---
 
 ## Heritage, Credits & License

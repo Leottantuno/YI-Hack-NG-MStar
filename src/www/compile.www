@@ -61,12 +61,26 @@ cp ./httpd/htdocs/pages/*.html ./_install/www/pages/
 cp -R ./httpd/htdocs/img/. ./_install/www/img/
 cp -R ./httpd/cgi-bin/* ./_install/www/cgi-bin/
 
-echo "Compressing web assets with GZIP -9 (keep uncompressed fallbacks)..."
-# Busybox httpd serves *.gz only when the client sends Accept-Encoding: gzip.
-# Some mobile browsers / WebViews request without gzip and get 404 if only
-# the .gz file exists — keep plain files alongside .gz.
-find ./_install/www/* -type f -not \( -path './_install/www/cgi-bin/*' -prune \) -not -name '*.gz' | while read -r f; do
-    gzip -9 -c "$f" > "$f.gz"
-done
+# PACK_PROFILE=full (default): plain + .gz for clients that send Accept-Encoding: gzip.
+# PACK_PROFILE=slim: plain only — saves ~90–400KB on /home (busybox httpd works without gzip).
+PACK_PROFILE="${PACK_PROFILE:-full}"
+case "$PACK_PROFILE" in
+    full)
+        echo "Compressing web assets with GZIP -9 (keep uncompressed fallbacks)..."
+        # Busybox httpd serves *.gz only when the client sends Accept-Encoding: gzip.
+        # Some mobile browsers / WebViews request without gzip and get 404 if only
+        # the .gz file exists — keep plain files alongside .gz.
+        find ./_install/www/* -type f -not \( -path './_install/www/cgi-bin/*' -prune \) -not -name '*.gz' | while read -r f; do
+            gzip -9 -c "$f" > "$f.gz"
+        done
+        ;;
+    slim)
+        echo "PACK_PROFILE=slim: skipping .gz duplicates (plain assets only)."
+        ;;
+    *)
+        echo "ERROR: PACK_PROFILE must be full or slim (got: $PACK_PROFILE)" >&2
+        exit 1
+        ;;
+esac
 
-echo "Web UI compilation succeeded."
+echo "Web UI compilation succeeded (PACK_PROFILE=$PACK_PROFILE)."

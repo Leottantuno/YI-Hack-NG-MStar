@@ -1,13 +1,9 @@
 #!/bin/sh
 
-CONF_FILE="etc/system.conf"
 YI_HACK_PREFIX="/home/yi-hack"
 
-get_config()
-{
-    key=$1
-    grep -w $1 $YI_HACK_PREFIX/$CONF_FILE | cut -d "=" -f2-
-}
+. $YI_HACK_PREFIX/script/common.sh
+
 
 printf "Content-type: application/json\r\n\r\n"
 printf "{\"records\":[\n"

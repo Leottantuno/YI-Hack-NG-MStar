@@ -1,13 +1,10 @@
 #!/bin/sh
 
-CONF_FILE="etc/camera.conf"
 YI_HACK_PREFIX="/home/yi-hack"
+CONF_FILE="etc/camera.conf"
 
-get_config()
-{
-    key=$1
-    grep -w $1 $YI_HACK_PREFIX/$CONF_FILE | cut -d "=" -f2-
-}
+. $YI_HACK_PREFIX/script/common.sh
+
 
 # Files
 TMPOUT=/tmp/config.7z.dl

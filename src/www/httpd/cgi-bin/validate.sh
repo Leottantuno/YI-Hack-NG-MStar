@@ -87,3 +87,25 @@ validateKey()
             return 0;;
     esac
 }
+
+# Recording hour directory: YYYYYmmMDDDh e.g. 2024Y01M15D10H
+validateRecDir()
+{
+    case "$1" in
+        [0-9][0-9][0-9][0-9]Y[0-9][0-9]M[0-9][0-9]D[0-9][0-9]H)
+            return 0 ;;
+        *)
+            return 1 ;;
+    esac
+}
+
+# Recording clip path under record/: DIR/NNmNNsNN.mp4
+validateRecFile()
+{
+    case "$1" in
+        [0-9][0-9][0-9][0-9]Y[0-9][0-9]M[0-9][0-9]D[0-9][0-9]H/[0-9][0-9]M[0-9][0-9]S[0-9][0-9].mp4)
+            return 0 ;;
+        *)
+            return 1 ;;
+    esac
+}

@@ -2,18 +2,14 @@
 
 YI_HACK_PREFIX="/home/yi-hack"
 CAMERA_CONF_FILE="$YI_HACK_PREFIX/etc/camera.conf"
-MQTT_CONF_FILE="$YI_HACK_PREFIX/etc/mqttv4.conf"
 
-# Parse mqtt config without sourcing (values may contain shell metacharacters)
-get_mqtt() {
-    grep -w "$1" "$MQTT_CONF_FILE" | cut -d "=" -f2-
-}
+. $YI_HACK_PREFIX/script/common.sh
 
-MQTT_IP=$(get_mqtt MQTT_IP)
-MQTT_PORT=$(get_mqtt MQTT_PORT)
-MQTT_USER=$(get_mqtt MQTT_USER)
-MQTT_PASSWORD=$(get_mqtt MQTT_PASSWORD)
-MQTT_PREFIX=$(get_mqtt MQTT_PREFIX)
+MQTT_IP=$(get_mqtt_config MQTT_IP)
+MQTT_PORT=$(get_mqtt_config MQTT_PORT)
+MQTT_USER=$(get_mqtt_config MQTT_USER)
+MQTT_PASSWORD=$(get_mqtt_config MQTT_PASSWORD)
+MQTT_PREFIX=$(get_mqtt_config MQTT_PREFIX)
 
 if [ -z "$MQTT_IP" ]; then
     exit

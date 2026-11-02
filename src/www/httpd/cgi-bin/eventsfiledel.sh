@@ -1,24 +1,13 @@
 #!/bin/sh
 
-# Expected: 2024Y01M15D10H/00M00S00.mp4 (27 chars: dir + / + 12-char clip name)
-validateRecFile()
-{
-    case "$1" in
-        [0-9][0-9][0-9][0-9]Y[0-9][0-9]M[0-9][0-9]D[0-9][0-9]H/[0-9][0-9]M[0-9][0-9]S[0-9][0-9].mp4)
-            return 0 ;;
-        *)
-            return 1 ;;
-    esac
-}
+YI_HACK_PREFIX="/home/yi-hack"
+
+. $YI_HACK_PREFIX/www/cgi-bin/validate.sh
 
 fbasename()
 {
     echo ${1:0:$((${#1} - 4))}
 }
-
-YI_HACK_PREFIX="/home/yi-hack"
-
-. $YI_HACK_PREFIX/www/cgi-bin/validate.sh
 
 if ! $(validateQueryString $QUERY_STRING); then
     printf "Content-type: application/json\r\n\r\n"

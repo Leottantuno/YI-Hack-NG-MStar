@@ -10,6 +10,7 @@ REPO="Leottantuno/YI-Hack-NG-MStar"
 MIN_FW_BYTES=2000000
 
 . $YI_HACK_PREFIX/www/cgi-bin/validate.sh
+. $YI_HACK_PREFIX/www/cgi-bin/fw_common.sh
 
 fail_html() {
     printf "Content-type: text/html\r\n\r\n"
@@ -26,58 +27,14 @@ apply_firmware_archive() {
     ARCHIVE="$1"
     MODEL_SUFFIX="$2"
 
-    if [ ! -f "$FW_DIR/$ARCHIVE" ]; then
-        write_status "error: archive missing"
-        return 1
+    if fw_stage_from_archive "$ARCHIVE" "$MODEL_SUFFIX"; then
+        write_status "rebooting"
+        sync; sync; sync
+        (sleep 1; killall httpd; sleep 1; reboot -f) </dev/null >/dev/null 2>&1 &
+        return 0
     fi
-
-    SIZE=$(ls -l "$FW_DIR/$ARCHIVE" | awk '{print $5}')
-    if [ -z "$SIZE" ] || [ "$SIZE" -lt "$MIN_FW_BYTES" ]; then
-        write_status "error: download incomplete (${SIZE:-0} bytes)"
-        return 1
-    fi
-
-    if ! tar -ztf "$FW_DIR/$ARCHIVE" >/dev/null 2>&1; then
-        write_status "error: archive corrupted"
-        return 1
-    fi
-
-    HAS_SYS=$(tar -ztf "$FW_DIR/$ARCHIVE" 2>/dev/null | grep -E "(^|/)sys_${MODEL_SUFFIX}$")
-    HAS_HOME=$(tar -ztf "$FW_DIR/$ARCHIVE" 2>/dev/null | grep -E "(^|/)home_${MODEL_SUFFIX}$")
-    if [ -z "$HAS_SYS" ] || [ -z "$HAS_HOME" ]; then
-        write_status "error: model mismatch (need sys_${MODEL_SUFFIX} and home_${MODEL_SUFFIX})"
-        return 1
-    fi
-
-    cd "$FW_DIR" || return 1
-    tar -zxvf "$ARCHIVE" >/dev/null 2>&1 || {
-        write_status "error: extract failed"
-        return 1
-    }
-    rm -f "$ARCHIVE"
-
-    # Optional integrity file from pack_release (skip if sha256sum applet missing)
-    if [ -f SHA256SUMS ] && command -v sha256sum >/dev/null 2>&1; then
-        if ! sha256sum -c SHA256SUMS >/dev/null 2>&1; then
-            write_status "error: SHA256SUMS mismatch"
-            return 1
-        fi
-    fi
-
-    mv -f sys_* home_* /tmp/sd/ 2>/dev/null || {
-        write_status "error: could not stage partitions on SD"
-        return 1
-    }
-
-    cp -f $YI_HACK_PREFIX/etc/*.conf . 2>/dev/null
-    [ -f $YI_HACK_PREFIX/etc/hostname ] && cp -f $YI_HACK_PREFIX/etc/hostname .
-    [ -f $YI_HACK_PREFIX/etc/TZ ] && cp -f $YI_HACK_PREFIX/etc/TZ .
-    [ -f $YI_HACK_PREFIX/etc/passwd ] && cp -f $YI_HACK_PREFIX/etc/passwd .
-    touch $YI_HACK_PREFIX/.fw_upgrade_in_progress
-    write_status "rebooting"
-    sync; sync; sync
-    (sleep 1; killall httpd; sleep 1; reboot -f) </dev/null >/dev/null 2>&1 &
-    return 0
+    write_status "error: ${FW_STAGE_ERR:-staging failed}"
+    return 1
 }
 
 # Background worker: download from GitHub then apply
@@ -127,7 +84,7 @@ if [ "$VAL" == "info" ] ; then
 
     MODEL_SUFFIX=`cat $YI_HACK_PREFIX/model_suffix`
     FW_VERSION=`cat $YI_HACK_PREFIX/version`
-    LATEST_FW=`wget -T 20 -O - -U "yi-hack-fw-upgrade" "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'`
+    LATEST_FW=$(fetch_latest_release_tag "$REPO")
     if [ -f /tmp/sd/${MODEL_SUFFIX}_x.x.x.tgz ]; then
         LOCAL_FW="true"
     else
@@ -136,8 +93,8 @@ if [ "$VAL" == "info" ] ; then
 
     printf "{\n"
     printf "\"%s\":\"%s\",\n" "error" "false"
-    printf "\"%s\":\"%s\",\n" "fw_version"      "$FW_VERSION"
-    printf "\"%s\":\"%s\",\n" "latest_fw"       "$LATEST_FW"
+    printf "\"%s\":\"%s\",\n" "fw_version"      "$(fw_json_escape "$FW_VERSION")"
+    printf "\"%s\":\"%s\",\n" "latest_fw"       "$(fw_json_escape "$LATEST_FW")"
     printf "\"%s\":%s\n" "local_fw"             "$LOCAL_FW"
     printf "}"
 
@@ -191,7 +148,7 @@ elif [ "$VAL" == "upgrade" ] ; then
         exit
     fi
 
-    LATEST_FW=`wget -T 20 -O - -U "yi-hack-fw-upgrade" "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'`
+    LATEST_FW=$(fetch_latest_release_tag "$REPO")
     if [ -z "$LATEST_FW" ]; then
         fail_html "Unable to query GitHub releases."
     fi

@@ -1,24 +1,13 @@
 #!/bin/sh
 
-CONF_FILE="etc/system.conf"
 YI_HACK_PREFIX="/home/yi-hack"
 
-get_config()
-{
-    key=$1
-    grep -w $1 $YI_HACK_PREFIX/$CONF_FILE | cut -d "=" -f2-
-}
+. $YI_HACK_PREFIX/script/common.sh
 
 LOCAL_IP=$(ifconfig wlan0 | awk '/inet addr/{print substr($2,6)}')
 
-case $(get_config RTSP_PORT) in
-    ''|*[!0-9]*) RTSP_PORT=554 ;;
-    *) RTSP_PORT=$(get_config RTSP_PORT) ;;
-esac
-case $(get_config HTTPD_PORT) in
-    ''|*[!0-9]*) HTTPD_PORT=8080 ;;
-    *) HTTPD_PORT=$(get_config HTTPD_PORT) ;;
-esac
+RTSP_PORT=$(get_port_config RTSP_PORT 554)
+HTTPD_PORT=$(get_port_config HTTPD_PORT 8080)
 
 if [[ $RTSP_PORT != "554" ]] ; then
     D_RTSP_PORT=:$RTSP_PORT

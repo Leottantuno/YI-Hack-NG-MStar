@@ -1,19 +1,13 @@
 #!/bin/sh
 
-CONF_FILE="etc/system.conf"
-
 YI_PREFIX="/home/app"
 YI_HACK_PREFIX="/home/yi-hack"
 START_STOP_SCRIPT=$YI_HACK_PREFIX/script/service.sh
 
+. $YI_HACK_PREFIX/script/common.sh
+
 YI_HACK_VER=$(cat /home/yi-hack/version)
 MODEL_SUFFIX=$(cat /home/yi-hack/model_suffix)
-
-get_config()
-{
-    key=$1
-    grep -w $1 $YI_HACK_PREFIX/$CONF_FILE | cut -d "=" -f2-
-}
 
 start_buffer()
 {
@@ -30,19 +24,48 @@ start_buffer()
     ipc_cmd -x
 }
 
-log()
+# Shared core: dispatch + rmm + audio fifo drain (cloud and no-cloud paths).
+start_yi_core()
 {
-    if [ "$DEBUG_LOG" == "yes" ]; then
-        echo $1 >> /tmp/sd/hack_debug.log
-
-        if [ "$2" == "1" ]; then
-            echo "" >> /tmp/sd/hack_debug.log
-            ps >> /tmp/sd/hack_debug.log
-            echo "" >> /tmp/sd/hack_debug.log
-            free >> /tmp/sd/hack_debug.log
-            echo "" >> /tmp/sd/hack_debug.log
-        fi
+    if [ $(get_config RTSP_AUDIO) != "no" ]; then
+        touch /tmp/audio_fifo.requested
+        touch /tmp/audio_fifo_mono_8khz.requested
     fi
+    if [ $(get_config SPEAKER_AUDIO) != "no" ]; then
+        touch /tmp/audio_in_fifo.requested
+    fi
+    cd /home/app
+    killall dispatch
+    LD_PRELOAD=/home/yi-hack/lib/ipc_multiplex.so ./dispatch &
+    sleep 3
+    if [ $(get_config TIME_OSD) == "yes" ]; then
+        set_tz_offset -c osd -o on
+    fi
+    LD_LIBRARY_PATH="/home/yi-hack/lib:/lib:/home/lib:/home/ms:/home/app/locallib" ./rmm &
+    sleep 4
+    dd if=/tmp/audio_fifo of=/dev/null bs=1 count=8192
+}
+
+start_mp4record()
+{
+    if [[ $(get_config TIME_OSD) == "yes" ]] ; then
+        (sleep 30; export TZP=`TZ=$TZ_TMP date +%z`; export TZP=${TZP:0:3}:${TZP:3:2}; export TZ=GMT$TZP; ./mp4record) &
+    else
+        ./mp4record &
+    fi
+}
+
+apply_cloud_blacklist()
+{
+    while read -r line
+    do
+        echo "127.0.0.1    $line" >> /etc/hosts
+    done < $YI_HACK_PREFIX/script/blacklist/url
+
+    while read -r line
+    do
+        route add -host $line reject
+    done < $YI_HACK_PREFIX/script/blacklist/ip
 }
 
 DEBUG_LOG=$(get_config DEBUG_LOG)
@@ -117,17 +140,12 @@ if [ -f $YI_HACK_PREFIX/etc/TZ ]; then
     TZ_TMP=`cat $YI_HACK_PREFIX/etc/TZ`
 fi
 
-HTTPD_AUTH_READY=no
-if [[ x$(get_config USERNAME) != "x" ]] ; then
+load_web_credentials
+if httpd_auth_ready ; then
     log "Setting username and password"
-    USERNAME=$(get_config USERNAME)
-    PASSWORD=$(get_config PASSWORD)
-    RTSP_USERPWD=$USERNAME:$PASSWORD@
-    ONVIF_USERPWD="user=$USERNAME\npassword=$PASSWORD"
     echo "/onvif::" > /tmp/httpd.conf
     echo "/:$USERNAME:$PASSWORD" >> /tmp/httpd.conf
     chmod 0600 /tmp/httpd.conf
-    HTTPD_AUTH_READY=yes
 else
     # Fail closed: never start httpd without Basic Auth credentials.
     log "USERNAME empty — httpd will not start until web credentials are set" 1
@@ -148,41 +166,14 @@ if [[ x$CUR_PASSWORD_MD5 != x$PASSWORD_MD5 ]] ; then
     sed -i 's|^\(root:\)[^:]*:|root:'${PASSWORD_MD5}':|g' "$YI_HACK_PREFIX/etc/passwd"
 fi
 
-case $(get_config RTSP_PORT) in
-    ''|*[!0-9]*) RTSP_PORT=554 ;;
-    *) RTSP_PORT=$(get_config RTSP_PORT) ;;
-esac
-case $(get_config HTTPD_PORT) in
-    ''|*[!0-9]*) HTTPD_PORT=80 ;;
-    *) HTTPD_PORT=$(get_config HTTPD_PORT) ;;
-esac
+RTSP_PORT=$(get_port_config RTSP_PORT 554)
+HTTPD_PORT=$(get_port_config HTTPD_PORT 80)
 
 log "Starting yi processes" 1
 if [[ $(get_config DISABLE_CLOUD) == "no" ]] ; then
     (
-        if [ $(get_config RTSP_AUDIO) != "no" ]; then
-            touch /tmp/audio_fifo.requested
-            touch /tmp/audio_fifo_mono_8khz.requested
-        fi
-        if [ $(get_config SPEAKER_AUDIO) != "no" ]; then
-            touch /tmp/audio_in_fifo.requested
-        fi
-        cd /home/app
-        killall dispatch
-        LD_PRELOAD=/home/yi-hack/lib/ipc_multiplex.so ./dispatch &
-        sleep 3
-        if [ $(get_config TIME_OSD) == "yes" ]; then
-            # Enable time osd
-            set_tz_offset -c osd -o on
-        fi
-        LD_LIBRARY_PATH="/home/yi-hack/lib:/lib:/home/lib:/home/ms:/home/app/locallib" ./rmm &
-        sleep 4
-        dd if=/tmp/audio_fifo of=/dev/null bs=1 count=8192
-        if [[ $(get_config TIME_OSD) == "yes" ]] ; then
-            (sleep 30; export TZP=`TZ=$TZ_TMP date +%z`; export TZP=${TZP:0:3}:${TZP:3:2}; export TZ=GMT$TZP; ./mp4record) &
-        else
-            ./mp4record &
-        fi
+        start_yi_core
+        start_mp4record
         ./cloud &
         ./p2p_tnp &
         ./oss &
@@ -196,42 +187,12 @@ if [[ $(get_config DISABLE_CLOUD) == "no" ]] ; then
     )
 else
     (
-        while read -r line
-        do
-            echo "127.0.0.1    $line" >> /etc/hosts
-        done < $YI_HACK_PREFIX/script/blacklist/url
-
-        while read -r line
-        do
-            route add -host $line reject
-        done < $YI_HACK_PREFIX/script/blacklist/ip
-
-        if [ $(get_config RTSP_AUDIO) != "no" ]; then
-            touch /tmp/audio_fifo.requested
-            touch /tmp/audio_fifo_mono_8khz.requested
-        fi
-        if [ $(get_config SPEAKER_AUDIO) != "no" ]; then
-            touch /tmp/audio_in_fifo.requested
-        fi
-        cd /home/app
-        killall dispatch
-        LD_PRELOAD=/home/yi-hack/lib/ipc_multiplex.so ./dispatch &
-        sleep 3
-        if [ $(get_config TIME_OSD) == "yes" ]; then
-            # Enable time osd
-            set_tz_offset -c osd -o on
-        fi
-        LD_LIBRARY_PATH="/home/yi-hack/lib:/lib:/home/lib:/home/ms:/home/app/locallib" ./rmm &
-        sleep 4
-        dd if=/tmp/audio_fifo of=/dev/null bs=1 count=8192
+        apply_cloud_blacklist
+        start_yi_core
         # Trick to start circular buffer filling
         start_buffer
         if [[ $(get_config REC_WITHOUT_CLOUD) == "yes" ]] ; then
-            if [[ $(get_config TIME_OSD) == "yes" ]] ; then
-                (sleep 30; export TZP=`TZ=$TZ_TMP date +%z`; export TZP=${TZP:0:3}:${TZP:3:2}; export TZ=GMT$TZP; ./mp4record) &
-            else
-                ./mp4record &
-            fi
+            start_mp4record
         fi
         ./cloud &
     )
@@ -244,7 +205,7 @@ if [ -f $YI_HACK_PREFIX/etc/TZ ]; then
 fi
 
 if [[ $(get_config HTTPD) == "yes" ]] ; then
-    if [[ "$HTTPD_AUTH_READY" == "yes" ]] ; then
+    if httpd_auth_ready ; then
         log "Starting http"
         httpd -p $HTTPD_PORT -h $YI_HACK_PREFIX/www/ -c /tmp/httpd.conf
     else

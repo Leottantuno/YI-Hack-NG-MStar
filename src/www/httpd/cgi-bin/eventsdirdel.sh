@@ -1,16 +1,5 @@
 #!/bin/sh
 
-# Expected dirname: YYYY Y MM M DD D HH H  e.g. 2024Y01M15D10H
-validateRecDir()
-{
-    case "$1" in
-        [0-9][0-9][0-9][0-9]Y[0-9][0-9]M[0-9][0-9]D[0-9][0-9]H)
-            return 0 ;;
-        *)
-            return 1 ;;
-    esac
-}
-
 YI_HACK_PREFIX="/home/yi-hack"
 
 . $YI_HACK_PREFIX/www/cgi-bin/validate.sh
