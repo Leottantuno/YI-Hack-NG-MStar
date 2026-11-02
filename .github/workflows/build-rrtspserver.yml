@@ -77,8 +77,10 @@ jobs:
           VER="$(cat VERSION)"
           echo "Packaging firmware for version: $VER"
           for MODEL in y203c h201c h305r h307 y23 y25 y30; do
-            echo "--- Packing $MODEL ---"
-            ./scripts/pack_release.sh "$MODEL" "$VER" 0.5.8 || echo "Skipping $MODEL if base release not found"
+            echo "--- Packing $MODEL (full) ---"
+            PACK_PROFILE=full ./scripts/pack_release.sh "$MODEL" "$VER" 0.5.8 || echo "Skipping $MODEL if base release not found"
+            echo "--- Packing $MODEL (slim) ---"
+            PACK_PROFILE=slim ./scripts/pack_release.sh "$MODEL" "$VER" 0.5.8 || echo "Skipping slim $MODEL if base release not found"
           done
           ls -lh out/
 
