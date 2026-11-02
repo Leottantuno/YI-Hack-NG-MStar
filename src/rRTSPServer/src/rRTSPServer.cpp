@@ -310,15 +310,19 @@ int main(int argc, char** argv)
             break;
 
         case 'u':
-            if (strlen(optarg) < sizeof(user)) {
-                strcpy(user, optarg);
+            if (strlen(optarg) == 0 || strlen(optarg) >= sizeof(user)) {
+                fprintf(stderr, "Invalid RTSP username (empty or too long)\n");
+                exit(EXIT_FAILURE);
             }
+            strcpy(user, optarg);
             break;
 
         case 'w':
-            if (strlen(optarg) < sizeof(pwd)) {
-                strcpy(pwd, optarg);
+            if (strlen(optarg) == 0 || strlen(optarg) >= sizeof(pwd)) {
+                fprintf(stderr, "Invalid RTSP password (empty or too long)\n");
+                exit(EXIT_FAILURE);
             }
+            strcpy(pwd, optarg);
             break;
 
         case 'd':
@@ -430,12 +434,20 @@ int main(int argc, char** argv)
     }
 
     str = getenv("RRTSP_USER");
-    if ((str != NULL) && (strlen(str) < sizeof(user))) {
+    if (str != NULL) {
+        if (strlen(str) == 0 || strlen(str) >= sizeof(user)) {
+            fprintf(stderr, "Invalid RRTSP_USER (empty or too long)\n");
+            exit(EXIT_FAILURE);
+        }
         strcpy(user, str);
     }
 
     str = getenv("RRTSP_PWD");
-    if ((str != NULL) && (strlen(str) < sizeof(pwd))) {
+    if (str != NULL) {
+        if (strlen(str) == 0 || strlen(str) >= sizeof(pwd)) {
+            fprintf(stderr, "Invalid RRTSP_PWD (empty or too long)\n");
+            exit(EXIT_FAILURE);
+        }
         strcpy(pwd, str);
     }
 
@@ -455,6 +467,16 @@ int main(int argc, char** argv)
     }
 
     UserAuthenticationDatabase* authDB = NULL;
+
+    // Fail closed: username without password (or vice versa) must not disable auth.
+    if ((user[0] != '\0') && (pwd[0] == '\0')) {
+        fprintf(stderr, "RTSP username set but password empty; refusing to start without authentication\n");
+        exit(EXIT_FAILURE);
+    }
+    if ((user[0] == '\0') && (pwd[0] != '\0')) {
+        fprintf(stderr, "RTSP password set but username empty; refusing to start without authentication\n");
+        exit(EXIT_FAILURE);
+    }
 
     if ((user[0] != '\0') && (pwd[0] != '\0')) {
         // To implement client access control to the RTSP server, do the following:

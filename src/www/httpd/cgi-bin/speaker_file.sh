@@ -43,17 +43,29 @@ read -r POST_DATA
 
 printf "Content-type: application/json\r\n\r\n"
 
-if [ -f /tmp/sd/audio/$POST_DATA ] && [ -e /tmp/audio_in_fifo ]; then
+# Basename only — reject path traversal and unsafe names
+AUDIO_FILE=$(basename -- "$POST_DATA")
+if ! $(validateBaseName "$AUDIO_FILE") || [ "$AUDIO_FILE" != "$POST_DATA" ]; then
+    printf "{\n"
+    printf "\"%s\":\"%s\",\\n" "error" "true"
+    printf "\"%s\":\"%s\"\\n" "description" "Invalid file name"
+    printf "}"
+    exit
+fi
+
+AUDIO_PATH="${FILE_PATH}${AUDIO_FILE}"
+
+if [ -f "$AUDIO_PATH" ] && [ -e /tmp/audio_in_fifo ]; then
     TMP_FILE="/tmp/sd/speak.pcm"
     if [ ! -f $TMP_FILE ]; then
-        cat $FILE_PATH$POST_DATA > $TMP_FILE
+        cat "$AUDIO_PATH" > $TMP_FILE
         cat $TMP_FILE | pcmvol -G $VOLDB > /tmp/audio_in_fifo
         sleep 1
         rm $TMP_FILE
 
         printf "{\n"
         printf "\"%s\":\"%s\",\\n" "error" "false"
-        printf "\"%s\":\"%s\"\\n" "description" "$POST_DATA"
+        printf "\"%s\":\"%s\"\\n" "description" "$AUDIO_FILE"
         printf "}"
     else
         printf "{\n"
@@ -62,7 +74,7 @@ if [ -f /tmp/sd/audio/$POST_DATA ] && [ -e /tmp/audio_in_fifo ]; then
         printf "}"
     fi
 else
-    if [ ! -f $FILE_PATH$POST_DATA ]; then
+    if [ ! -f "$AUDIO_PATH" ]; then
         printf "{\n"
         printf "\"%s\":\"%s\"\\n" "error" "true"
         printf "\"%s\":\"%s\"\\n" "description" "File not found"

@@ -9,23 +9,15 @@ get_config()
     grep -w $1 $YI_HACK_PREFIX/$CONF_FILE | cut -d "=" -f2-
 }
 
+# Expected dirname: YYYY Y MM M DD D HH H  e.g. 2024Y01M15D10H
 validateRecDir()
 {
-    if [ "${#1}" != "14" ]; then
-        DIR = "none"
-    fi
-    if [ "Y${1:4:1}" != "YY" ] ; then
-        DIR = "none"
-    fi
-    if [ "M${1:7:1}" != "MM" ] ; then
-        DIR = "none"
-    fi
-    if [ "D${1:10:1}" != "DD" ] ; then
-        DIR = "none"
-    fi
-    if [ "H${1:13:1}" != "HH" ] ; then
-        DIR = "none"
-    fi
+    case "$1" in
+        [0-9][0-9][0-9][0-9]Y[0-9][0-9]M[0-9][0-9]D[0-9][0-9]H)
+            return 0 ;;
+        *)
+            return 1 ;;
+    esac
 }
 
 fbasename()
@@ -52,9 +44,7 @@ if [ "$CONF" == "dirname" ]; then
      DIR=$VAL
 fi
 
-validateRecDir $DIR
-
-if [ "$DIR" == "none" ] ; then
+if ! validateRecDir "$DIR"; then
     printf "Content-type: application/json\r\n\r\n"
     printf "{\n"
     printf "\"%s\":\"%s\"\\n" "error" "true"

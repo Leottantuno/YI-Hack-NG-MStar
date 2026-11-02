@@ -340,7 +340,15 @@ CRONTAB=$(get_config CRONTAB)
 FREE_SPACE=$(get_config FREE_SPACE)
 mkdir -p /var/spool/cron/crontabs/
 if [ ! -z "$CRONTAB" ]; then
-    echo -e "$CRONTAB" > /var/spool/cron/crontabs/root
+    # Reject shell metacharacters that would turn crontab entries into RCE
+    case "$CRONTAB" in
+        *[\;\`\$\|\&\<\>\(\)\{\}\'\"\\]*)
+            log "CRONTAB contains unsafe characters — ignoring custom entries" 1
+            ;;
+        *)
+            echo -e "$CRONTAB" > /var/spool/cron/crontabs/root
+            ;;
+    esac
 fi
 if [[ $(get_config TIME_OSD) == "yes" ]] ; then
     echo "1 * * * * /home/yi-hack/script/update_osd_tz.sh" >> /var/spool/cron/crontabs/root

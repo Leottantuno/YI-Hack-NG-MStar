@@ -63,22 +63,36 @@ cd $TMPDIR
 7za x -y $TMPOUT7z >/dev/null 2>&1
 RES=$?
 
-# Verify result of 7za command and copy files to destination
+# Verify result of 7za command and copy only allowlisted files (no path members)
 if [ $RES -eq 0 ]; then
-    if [ \( -f "system.conf" \) -a \( -f "camera.conf" \) ]; then
-        mv -f *.conf /home/yi-hack/etc/
+    # Reject archives that unpack outside the workdir
+    UNSAFE=$(find . -type f ! -name '*.conf' ! -name 'TZ' ! -name 'hostname' ! -name 'passwd' ! -name 'config.7z' 2>/dev/null)
+    PATHS=$(find . -name '*/*' -o -name '..*' 2>/dev/null | head -n 1)
+    if [ -n "$UNSAFE" ] || [ -n "$PATHS" ]; then
+        RES=1
+    elif [ -f "system.conf" ] && [ -f "camera.conf" ]; then
+        for f in system.conf camera.conf mqttv4.conf mqtt_advertise.conf proxychains.conf.template ptz_presets.conf; do
+            if [ -f "$f" ]; then
+                mv -f "$f" /home/yi-hack/etc/
+            fi
+        done
         chmod 0644 /home/yi-hack/etc/*.conf
         if [ -f TZ ]; then
             mv -f TZ /home/yi-hack/etc/
             chmod 0644 /home/yi-hack/etc/TZ
         fi
         if [ -f hostname ]; then
-            mv -f hostname /home/yi-hack/etc/
+            # Sanitize hostname content
+            tr -cd 'A-Za-z0-9._-\n' < hostname > /home/yi-hack/etc/hostname
             chmod 0644 /home/yi-hack/etc/hostname
+            rm -f hostname
         fi
         if [ -f passwd ]; then
-            mv -f passwd /home/yi-hack/etc/
-            chmod 0644 /home/yi-hack/etc/passwd
+            # Only accept a single root line without shell metacharacters in the shell field
+            if grep -q '^root:[^:]*:0:0:' passwd; then
+                mv -f passwd /home/yi-hack/etc/
+                chmod 0644 /home/yi-hack/etc/passwd
+            fi
         fi
         RES=0
     else

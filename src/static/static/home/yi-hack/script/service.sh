@@ -25,11 +25,17 @@ init_config()
         TZ_TMP=`cat $YI_HACK_PREFIX/etc/TZ`
     fi
 
+    RTSP_AUTH_OK=yes
     if [[ x$(get_config USERNAME) != "x" ]] ; then
         USERNAME=$(get_config USERNAME)
         PASSWORD=$(get_config PASSWORD)
-        ONVIF_USERPWD="user=$USERNAME\npassword=$PASSWORD"
-        RTSP_USERPWD=$USERNAME:$PASSWORD@
+        if [ -n "$PASSWORD" ]; then
+            ONVIF_USERPWD="user=$USERNAME\npassword=$PASSWORD"
+            RTSP_USERPWD=$USERNAME:$PASSWORD@
+        else
+            echo "USERNAME set but PASSWORD empty — ONVIF/RTSP auth incomplete" >&2
+            RTSP_AUTH_OK=no
+        fi
     fi
 
     case $(get_config RTSP_PORT) in
@@ -87,11 +93,16 @@ init_config()
         if [ ! -z $RTSP_PORT ]; then
             P_RTSP_PORT="-p "$RTSP_PORT
         fi
-        if [ ! -z $USERNAME ]; then
-            RTSP_USER="-u "$USERNAME
-        fi
-        if [ ! -z $PASSWORD ]; then
-            RTSP_PASSWORD="-w "$PASSWORD
+        # Require both credentials for RTSP auth; never pass only one (fail-open).
+        RTSP_AUTH_OK=yes
+        if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
+            RTSP_USER="-u $USERNAME"
+            RTSP_PASSWORD="-w $PASSWORD"
+        elif [ -n "$USERNAME" ] || [ -n "$PASSWORD" ]; then
+            echo "RTSP: USERNAME/PASSWORD incomplete — refusing to start RTSP unauthenticated" >&2
+            RTSP_USER=""
+            RTSP_PASSWORD=""
+            RTSP_AUTH_OK=no
         fi
         if [ ! -z $NR_LEVEL ]; then
             NR_LEVEL="-n "$NR_LEVEL
@@ -141,6 +152,11 @@ start_rtsp()
 {
     # If "null" use default
 
+    if [ "$RTSP_AUTH_OK" = "no" ]; then
+        echo "Skipping RTSP start: set both USERNAME and PASSWORD in system.conf" >&2
+        return
+    fi
+
     if [ "$1" == "low" ] || [ "$1" == "high" ] || [ "$1" == "both" ]; then
         RTSP_RES=$1
     fi
@@ -169,7 +185,7 @@ start_rtsp()
         echo "" >> /tmp/go2rtc.yaml
         echo "rtsp:" >> /tmp/go2rtc.yaml
         echo "  listen: \":$RTSP_PORT\"" >> /tmp/go2rtc.yaml
-        if [ ! -z $USERNAME ]; then
+        if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
             echo "  username: \"$USERNAME\"" >> /tmp/go2rtc.yaml
             echo "  password: \"$PASSWORD\"" >> /tmp/go2rtc.yaml
         fi

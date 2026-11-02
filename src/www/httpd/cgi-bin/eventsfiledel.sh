@@ -1,30 +1,14 @@
 #!/bin/sh
 
+# Expected: 2024Y01M15D10H/00M00S00.mp4 (27 chars: dir + / + 12-char clip name)
 validateRecFile()
 {
-    if [ "${#1}" != "27" ]; then
-        FILE="none"
-    fi
-
-    if [ "Y${1:4:1}" != "YY" ] ; then
-        FILE="none"
-    fi
-    if [ "M${1:7:1}" != "MM" ] ; then
-        FILE="none"
-    fi
-    if [ "D${1:10:1}" != "DD" ] ; then
-        FILE="none"
-    fi
-    if [ "H${1:13:1}" != "HH" ] ; then
-        FILE="none"
-    fi
-
-    if [ "M${1:17:1}" != "MM" ] ; then
-        FILE="none"
-    fi
-    if [ "S${1:20:1}" != "SS" ] ; then
-        FILE="none"
-    fi
+    case "$1" in
+        [0-9][0-9][0-9][0-9]Y[0-9][0-9]M[0-9][0-9]D[0-9][0-9]H/[0-9][0-9]M[0-9][0-9]S[0-9][0-9].mp4)
+            return 0 ;;
+        *)
+            return 1 ;;
+    esac
 }
 
 fbasename()
@@ -53,9 +37,7 @@ if [ "$CONF" == "file" ] ; then
     FILE="$VAL"
 fi
 
-validateRecFile $FILE
-
-if [ "$FILE" == "none" ] ; then
+if ! validateRecFile "$FILE"; then
     printf "Content-type: application/json\r\n\r\n"
     printf "{\n"
     printf "\"%s\":\"%s\"\\n" "error" "true"
@@ -64,8 +46,8 @@ if [ "$FILE" == "none" ] ; then
 fi
 
 BASE_NAME=$(fbasename "$FILE")
-rm -f /tmp/sd/record/$BASE_NAME.mp4
-rm -f /tmp/sd/record/$BASE_NAME.jpg
+rm -f "/tmp/sd/record/$BASE_NAME.mp4"
+rm -f "/tmp/sd/record/$BASE_NAME.jpg"
 
 printf "Content-type: application/json\r\n\r\n"
 

@@ -108,7 +108,10 @@ done
 
 if [ "$TYPE" == "2" ]; then
     LOCAL_IP=$(ifconfig wlan0 | awk '/inet addr/{print substr($2,6)}')
-    source /home/yi-hack/etc/system.conf
+    HTTPD_PORT=$(grep -w HTTPD_PORT /home/yi-hack/etc/system.conf | cut -d "=" -f2-)
+    case "$HTTPD_PORT" in
+        ''|*[!0-9]*) HTTPD_PORT=80 ;;
+    esac
 
     printf "Content-type: text/plain\r\n\r\n"
     echo "http://$LOCAL_IP:$HTTPD_PORT/record/$DIRNAME/$VIDNAME"
