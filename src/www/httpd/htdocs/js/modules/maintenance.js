@@ -160,21 +160,57 @@ APP.maintenance = (function($) {
 
     function upgradeFirmware() {
         $('#button-upgrade').attr("disabled", true);
-        setFwStatus("Firmware download in progress.");
+        setFwStatus("Starting firmware download...");
         $.ajax({
             type: "GET",
             url: 'cgi-bin/fw_upgrade.sh?get=upgrade',
             error: function(response) {
                 console.log('error', response);
+                setFwStatus("Upgrade request failed.");
+                $('#button-upgrade').attr("disabled", false);
             },
             success: function(response) {
                 setFwStatus(response);
-                waitForUpgrade();
-            },
-            complete: function () {
-                $('#button-upgrade').attr("disabled", false);
+                // GitHub download runs in background; poll until reboot or error
+                pollUpgradeStatus();
             }
         });
+    }
+
+    function pollUpgradeStatus() {
+        var tries = 0;
+        var timer = setInterval(function() {
+            tries++;
+            $.ajax({
+                type: "GET",
+                url: 'cgi-bin/fw_upgrade.sh?get=status',
+                dataType: "json",
+                timeout: 4000,
+                success: function(data) {
+                    var st = (data && data.status) ? data.status : "unknown";
+                    setFwStatus("Upgrade status: " + st);
+                    if (st.indexOf("error:") === 0) {
+                        clearInterval(timer);
+                        $('#button-upgrade').attr("disabled", false);
+                    } else if (st === "rebooting") {
+                        clearInterval(timer);
+                        waitForUpgrade();
+                    }
+                },
+                error: function() {
+                    // Camera may already be rebooting
+                    if (tries > 2) {
+                        clearInterval(timer);
+                        waitForUpgrade();
+                    }
+                }
+            });
+            if (tries > 180) { // ~15 min
+                clearInterval(timer);
+                setFwStatus("Upgrade timed out waiting for download.");
+                $('#button-upgrade').attr("disabled", false);
+            }
+        }, 5000);
     }
 
     function onFwFileSelected() {

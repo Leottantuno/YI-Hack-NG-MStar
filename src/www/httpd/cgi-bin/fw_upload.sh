@@ -79,8 +79,8 @@ fi
 tar -zxvf manual_upload.tgz >/dev/null 2>&1
 rm -f manual_upload.tgz
 
-# 8b. Optional integrity: if SHA256SUMS is present, verify listed partition images
-if [ -f SHA256SUMS ]; then
+# 8b. Optional integrity: verify SHA256SUMS when sha256sum exists on device
+if [ -f SHA256SUMS ] && command -v sha256sum >/dev/null 2>&1; then
     if ! sha256sum -c SHA256SUMS >/dev/null 2>&1; then
         cd /
         rm -rf /tmp/sd/.fw_upgrade
